@@ -24,14 +24,13 @@ public class CrosshairService extends Service {
         super.onCreate();
         windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
 
-        // تصميم الإيم (هنا سوينا نقطة حمراء فخمة ودائرية بنص الشاشة)
+        // تصميم الإيم
         crosshairView = new View(this);
         GradientDrawable dot = new GradientDrawable();
         dot.setShape(GradientDrawable.OVAL);
-        dot.setColor(Color.RED); // لون الإيم أحمر ناري واضح
+        dot.setColor(Color.RED); 
         crosshairView.setBackground(dot);
 
-        // إعدادات تثبيت الإيم وسط الشاشة بالضبط وعدم حجب اللمس عن اللعبة
         int layoutFlag;
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
             layoutFlag = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY;
@@ -39,15 +38,19 @@ public class CrosshairService extends Service {
             layoutFlag = WindowManager.LayoutParams.TYPE_PHONE;
         }
 
-        // حجم الإيم (هنا 40 في 40 بكسل، تكدر تكبره أو تصغره)
+        // السحر هنا: أضفنا أوامر (FLAG_LAYOUT_NO_LIMITS) و (FLAG_LAYOUT_IN_SCREEN)
+        // هاي الأوامر تجبر الإيم يتجاهل النوتش ويقعد بنص الشاشة الحقيقية للعبة
         WindowManager.LayoutParams params = new WindowManager.LayoutParams(
-                40, 40,
+                35, 35, // صغرنا حجمه شوية حتى يصير أدق بالتصويب
                 layoutFlag,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | 
+                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE |
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN | 
+                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
                 PixelFormat.TRANSLUCENT
         );
 
-        params.gravity = Gravity.CENTER; // السحر هنا: التمركز في الوسط بالضبط
+        params.gravity = Gravity.CENTER;
         params.x = 0;
         params.y = 0;
 
