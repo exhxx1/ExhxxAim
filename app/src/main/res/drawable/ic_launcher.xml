@@ -1,0 +1,14 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- الخلفية الداكنة -->
+    <path android:fillColor="#0F0F1A" android:pathData="M0,0h24v24H0z"/>
+    <!-- الإطار الدائري السماوي -->
+    <path android:fillColor="#00E5FF" android:pathData="M12,2A10,10 0 1,0 22,12A10,10 0 0,0 12,2Zm0,18A8,8 0 1,1 20,12A8,8 0 0,1 12,20Z"/>
+    <!-- خطوط التصويب الذهبية -->
+    <path android:strokeColor="#FFD700" android:strokeWidth="2" android:pathData="M12,5 v4 M12,15 v4 M5,12 h4 M15,12 h4"/>
+    <!-- نقطة المنتصف الحمراء للرأس (Headshot) -->
+    <path android:fillColor="#FF0000" android:pathData="M12,10.5a1.5,1.5 0 1,0 1.5,1.5 1.5,1.5 0 0,0 -1.5,-1.5z"/>
+</vector>
