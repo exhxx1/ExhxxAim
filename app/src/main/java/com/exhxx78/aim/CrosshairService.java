@@ -1,18 +1,15 @@
 package com.exhxx78.aim;
 
 import android.accessibilityservice.AccessibilityService;
-import android.accessibilityservice.GestureDescription;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.Path;
 import android.graphics.PixelFormat;
 import android.graphics.drawable.GradientDrawable;
-import android.os.Handler;
-import android.os.Looper;
+import android.os.IBinder;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
@@ -21,43 +18,15 @@ import android.view.accessibility.AccessibilityEvent;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
+import android.widget.SeekBar;
 import android.widget.TextView;
 
 public class CrosshairService extends AccessibilityService {
     private WindowManager windowManager;
     private DrawView crosshairView;
-    private TextView btnSettings, antiRecoilView;
+    private TextView btnSettings;
     private LinearLayout menuLayout;
     private SharedPreferences prefs;
-    
-    // متغيرات ثبات السلاح
-    private int recoilStrength;
-    private boolean isAntiRecoilActive;
-    private boolean isFiring = false;
-    private Handler handler = new Handler(Looper.getMainLooper());
-    private WindowManager.LayoutParams antiRecoilParams;
-
-    private Runnable recoilRunnable = new Runnable() {
-        @Override
-        public void run() {
-            if (isFiring && antiRecoilView != null) {
-                float x = antiRecoilParams.x + (antiRecoilView.getWidth() / 2f);
-                float y = antiRecoilParams.y + (antiRecoilView.getHeight() / 2f);
-                
-                // السحبة المجهرية للأسفل (تدمج النقرة مع سحب الشاشة لمقاومة الارتداد)
-                Path path = new Path();
-                path.moveTo(x, y);
-                path.lineTo(x, y + recoilStrength); 
-                
-                GestureDescription.Builder builder = new GestureDescription.Builder();
-                builder.addStroke(new GestureDescription.StrokeDescription(path, 0, 20)); 
-                dispatchGesture(builder.build(), null, null);
-                
-                // سرعة الإطلاق (40 ملي ثانية تسمح بحركة الشاشة بسلاسة)
-                handler.postDelayed(this, 40); 
-            }
-        }
-    };
 
     @Override
     public void onServiceConnected() {
@@ -71,13 +40,14 @@ public class CrosshairService extends AccessibilityService {
 
         int shapeType = prefs.getInt("shape", 0); 
         String savedColor = prefs.getString("color", "#39FF14"); 
-        recoilStrength = prefs.getInt("recoil_strength", 5);
-        isAntiRecoilActive = prefs.getBoolean("recoil_active", false);
+        float savedScale = prefs.getInt("aim_size_progress", 100) / 100f; // استرجاع الحجم المحفوظ
 
-        // 1. الإيم الأساسي
-        crosshairView = new DrawView(this, shapeType, savedColor);
+        // 1. الإيم الأساسي (بحجم الشاشة الكاملة حتى لا ينقص عند التكبير)
+        crosshairView = new DrawView(this, shapeType, savedColor, savedScale);
         WindowManager.LayoutParams crossParams = new WindowManager.LayoutParams(
-                400, 400, layoutFlag,
+                WindowManager.LayoutParams.MATCH_PARENT, 
+                WindowManager.LayoutParams.MATCH_PARENT, 
+                layoutFlag,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | 
                 WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE |
                 WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN | 
@@ -87,75 +57,7 @@ public class CrosshairService extends AccessibilityService {
         crossParams.gravity = Gravity.CENTER;
         windowManager.addView(crosshairView, crossParams);
 
-        // 2. زر إطلاق النار والثبات (Anti-Recoil Button)
-        antiRecoilView = new TextView(this);
-        antiRecoilView.setText("🔫");
-        antiRecoilView.setTextSize(26);
-        antiRecoilView.setGravity(Gravity.CENTER);
-        GradientDrawable recoilBg = new GradientDrawable();
-        recoilBg.setShape(GradientDrawable.OVAL);
-        recoilBg.setColor(Color.parseColor("#90D00000")); // أحمر شفاف
-        recoilBg.setStroke(3, Color.parseColor("#FFD700"));
-        antiRecoilView.setBackground(recoilBg);
-
-        antiRecoilParams = new WindowManager.LayoutParams(
-                140, 140, layoutFlag,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-                PixelFormat.TRANSLUCENT
-        );
-        antiRecoilParams.gravity = Gravity.TOP | Gravity.START;
-        antiRecoilParams.x = 200; antiRecoilParams.y = 500;
-        
-        antiRecoilView.setVisibility(isAntiRecoilActive ? View.VISIBLE : View.GONE);
-        windowManager.addView(antiRecoilView, antiRecoilParams);
-
-        antiRecoilView.setOnTouchListener(new View.OnTouchListener() {
-            private int initialX, initialY;
-            private float initialTouchX, initialTouchY;
-            private boolean isDragging = false;
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                switch (event.getAction()) {
-                    case MotionEvent.ACTION_DOWN:
-                        antiRecoilParams.flags |= WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
-                        windowManager.updateViewLayout(antiRecoilView, antiRecoilParams);
-                        initialX = antiRecoilParams.x; initialY = antiRecoilParams.y;
-                        initialTouchX = event.getRawX(); initialTouchY = event.getRawY();
-                        isDragging = false;
-                        isFiring = true;
-                        handler.post(recoilRunnable);
-                        recoilBg.setColor(Color.parseColor("#9000FF00")); // أخضر عند الرمي
-                        antiRecoilView.setBackground(recoilBg);
-                        return true;
-                    case MotionEvent.ACTION_MOVE:
-                        if (Math.abs(event.getRawX() - initialTouchX) > 15 || Math.abs(event.getRawY() - initialTouchY) > 15) {
-                            isDragging = true;
-                            if (isFiring) {
-                                isFiring = false;
-                                antiRecoilParams.flags &= ~WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
-                                windowManager.updateViewLayout(antiRecoilView, antiRecoilParams);
-                            }
-                            antiRecoilParams.x = initialX + (int) (event.getRawX() - initialTouchX);
-                            antiRecoilParams.y = initialY + (int) (event.getRawY() - initialTouchY);
-                            windowManager.updateViewLayout(antiRecoilView, antiRecoilParams);
-                            recoilBg.setColor(Color.parseColor("#90D00000"));
-                            antiRecoilView.setBackground(recoilBg);
-                        }
-                        return true;
-                    case MotionEvent.ACTION_UP:
-                    case MotionEvent.ACTION_CANCEL:
-                        isFiring = false;
-                        antiRecoilParams.flags &= ~WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
-                        windowManager.updateViewLayout(antiRecoilView, antiRecoilParams);
-                        recoilBg.setColor(Color.parseColor("#90D00000"));
-                        antiRecoilView.setBackground(recoilBg);
-                        return true;
-                }
-                return false;
-            }
-        });
-
-        // 3. القائمة العائمة
+        // 2. القائمة العائمة
         menuLayout = new LinearLayout(this);
         menuLayout.setOrientation(LinearLayout.VERTICAL);
         menuLayout.setBackgroundColor(Color.parseColor("#F2121212")); 
@@ -177,64 +79,38 @@ public class CrosshairService extends AccessibilityService {
         }
         menuLayout.addView(colorLayout);
 
-        // - قسم لوحة تحكم ثبات السلاح (Anti-Recoil Settings)
-        LinearLayout recoilBox = new LinearLayout(this);
-        recoilBox.setOrientation(LinearLayout.VERTICAL);
-        recoilBox.setBackgroundColor(Color.parseColor("#242424"));
-        recoilBox.setPadding(15, 15, 15, 15);
+        // - قسم التحكم بالحجم (Size Slider) الميزة الجديدة 📏
+        LinearLayout sizeBox = new LinearLayout(this);
+        sizeBox.setOrientation(LinearLayout.VERTICAL);
+        sizeBox.setBackgroundColor(Color.parseColor("#242424"));
+        sizeBox.setPadding(15, 15, 15, 15);
         LinearLayout.LayoutParams boxParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         boxParams.setMargins(0, 0, 0, 20);
-        recoilBox.setLayoutParams(boxParams);
+        sizeBox.setLayoutParams(boxParams);
 
-        TextView recoilTitle = new TextView(this);
-        recoilTitle.setText("🔫 لوحة تحكم ثبات السلاح");
-        recoilTitle.setTextColor(Color.parseColor("#FFD700"));
-        recoilTitle.setGravity(Gravity.CENTER);
-        recoilBox.addView(recoilTitle);
+        TextView sizeTitle = new TextView(this);
+        sizeTitle.setText("📏 تحكم بحجم الإيم");
+        sizeTitle.setTextColor(Color.parseColor("#FFD700"));
+        sizeTitle.setGravity(Gravity.CENTER);
+        sizeTitle.setPadding(0, 0, 0, 15);
+        sizeBox.addView(sizeTitle);
 
-        LinearLayout recoilControls = new LinearLayout(this);
-        recoilControls.setOrientation(LinearLayout.HORIZONTAL);
-        recoilControls.setGravity(Gravity.CENTER);
-        recoilControls.setPadding(0, 10, 0, 0);
-
-        Button btnToggleRecoil = new Button(this);
-        btnToggleRecoil.setText(isAntiRecoilActive ? "إيقاف 🔴" : "تشغيل 🟢");
-        btnToggleRecoil.setTextColor(Color.WHITE);
-        btnToggleRecoil.setBackgroundColor(Color.parseColor("#313244"));
-
-        Button btnMinus = new Button(this); btnMinus.setText(" - "); btnMinus.setTextColor(Color.WHITE); btnMinus.setBackgroundColor(Color.parseColor("#D50000"));
-        TextView txtStrength = new TextView(this); txtStrength.setText(" قوة: " + recoilStrength + " "); txtStrength.setTextColor(Color.WHITE); txtStrength.setTextSize(16);
-        Button btnPlus = new Button(this); btnPlus.setText(" + "); btnPlus.setTextColor(Color.WHITE); btnPlus.setBackgroundColor(Color.parseColor("#00C853"));
-
-        btnToggleRecoil.setOnClickListener(v -> {
-            isAntiRecoilActive = !isAntiRecoilActive;
-            prefs.edit().putBoolean("recoil_active", isAntiRecoilActive).apply();
-            btnToggleRecoil.setText(isAntiRecoilActive ? "إيقاف 🔴" : "تشغيل 🟢");
-            antiRecoilView.setVisibility(isAntiRecoilActive ? View.VISIBLE : View.GONE);
-        });
-
-        btnMinus.setOnClickListener(v -> {
-            if(recoilStrength > 1) {
-                recoilStrength--;
-                prefs.edit().putInt("recoil_strength", recoilStrength).apply();
-                txtStrength.setText(" قوة: " + recoilStrength + " ");
+        SeekBar sizeBar = new SeekBar(this);
+        sizeBar.setMax(200); // النطاق من 0 إلى 200
+        sizeBar.setProgress(prefs.getInt("aim_size_progress", 100)); // 100 هو الحجم الطبيعي (1.0x)
+        sizeBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                // الحجم الأدنى 50% (نصف الحجم) والأقصى 250% (عملاق جداً)
+                float scaleFactor = (progress + 50) / 100f; 
+                prefs.edit().putInt("aim_size_progress", progress).apply();
+                crosshairView.setScale(scaleFactor);
             }
+            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
         });
-
-        btnPlus.setOnClickListener(v -> {
-            if(recoilStrength < 50) {
-                recoilStrength++;
-                prefs.edit().putInt("recoil_strength", recoilStrength).apply();
-                txtStrength.setText(" قوة: " + recoilStrength + " ");
-            }
-        });
-
-        recoilControls.addView(btnToggleRecoil);
-        recoilControls.addView(btnMinus);
-        recoilControls.addView(txtStrength);
-        recoilControls.addView(btnPlus);
-        recoilBox.addView(recoilControls);
-        menuLayout.addView(recoilBox);
+        sizeBox.addView(sizeBar);
+        menuLayout.addView(sizeBox);
 
         // - زر الإغلاق الشامل
         Button btnCloseAll = new Button(this);
@@ -269,7 +145,7 @@ public class CrosshairService extends AccessibilityService {
         menuParams.gravity = Gravity.TOP | Gravity.START; menuParams.x = 200; menuParams.y = 200;
         windowManager.addView(menuLayout, menuParams);
 
-        // 4. زر القائمة العائم ≡
+        // 3. زر القائمة العائم ≡
         btnSettings = new TextView(this); btnSettings.setText("≡"); btnSettings.setTextColor(Color.WHITE); btnSettings.setTextSize(30); btnSettings.setGravity(Gravity.CENTER);
         GradientDrawable bg = new GradientDrawable(); bg.setShape(GradientDrawable.OVAL); bg.setColor(Color.parseColor("#90000000")); btnSettings.setBackground(bg);
         WindowManager.LayoutParams btnParams = new WindowManager.LayoutParams(120, 120, layoutFlag, WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE, PixelFormat.TRANSLUCENT);
@@ -300,23 +176,22 @@ public class CrosshairService extends AccessibilityService {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        isFiring = false;
         if (crosshairView != null) windowManager.removeView(crosshairView);
         if (btnSettings != null) windowManager.removeView(btnSettings);
         if (menuLayout != null) windowManager.removeView(menuLayout);
-        if (antiRecoilView != null) windowManager.removeView(antiRecoilView);
     }
 
-    // محرك الرسم (نفسه للـ 101 سكوب عملاق)
+    // محرك الرسم (يدعم التكبير الحر)
     private class DrawView extends View {
-        private Paint mainPaint, bgPaint; private int shape; private String colorHex;
-        public DrawView(Context context, int shapeType, String colorHex) {
-            super(context); this.shape = shapeType; this.colorHex = colorHex;
+        private Paint mainPaint, bgPaint; private int shape; private String colorHex; private float scaleFactor;
+        public DrawView(Context context, int shapeType, String colorHex, float scaleFactor) {
+            super(context); this.shape = shapeType; this.colorHex = colorHex; this.scaleFactor = scaleFactor;
             mainPaint = new Paint(Paint.ANTI_ALIAS_FLAG); mainPaint.setColor(Color.parseColor(colorHex)); mainPaint.setStyle(Paint.Style.STROKE); mainPaint.setStrokeWidth(4f); 
             bgPaint = new Paint(Paint.ANTI_ALIAS_FLAG); bgPaint.setColor(Color.BLACK); bgPaint.setStyle(Paint.Style.STROKE); bgPaint.setStrokeWidth(8f); 
         }
         public void setShape(int newShape) { this.shape = newShape; invalidate(); }
         public void setColor(String newColor) { this.colorHex = newColor; mainPaint.setColor(Color.parseColor(newColor)); invalidate(); }
+        public void setScale(float newScale) { this.scaleFactor = newScale; invalidate(); }
         private void drawLinePro(Canvas c, float startX, float startY, float stopX, float stopY) { c.drawLine(startX, startY, stopX, stopY, bgPaint); c.drawLine(startX, startY, stopX, stopY, mainPaint); }
         private void drawCirclePro(Canvas c, float cx, float cy, float radius, boolean fill) {
             bgPaint.setStyle(fill ? Paint.Style.FILL : Paint.Style.STROKE); mainPaint.setStyle(fill ? Paint.Style.FILL : Paint.Style.STROKE);
@@ -324,7 +199,13 @@ public class CrosshairService extends AccessibilityService {
         }
         @Override
         protected void onDraw(Canvas canvas) {
-            super.onDraw(canvas); int cx = getWidth() / 2; int cy = getHeight() / 2;
+            super.onDraw(canvas); 
+            int cx = getWidth() / 2; int cy = getHeight() / 2;
+            
+            // السحر هنا: تطبيق التكبير والتصغير على كامل الشاشة
+            canvas.save();
+            canvas.scale(scaleFactor, scaleFactor, cx, cy);
+
             if (shape == 0) {
                 drawCirclePro(canvas, cx, cy, 100f, false); drawLinePro(canvas, cx - 120, cy, cx - 80, cy); drawLinePro(canvas, cx + 80, cy, cx + 120, cy); 
                 drawLinePro(canvas, cx, cy - 120, cx, cy - 80); drawLinePro(canvas, cx, cy + 80, cx, cy + 120); drawCirclePro(canvas, cx, cy, 8f, true); 
@@ -339,6 +220,7 @@ public class CrosshairService extends AccessibilityService {
                 else { float oOut = (float)((outRad + 10f) * 0.707f); float oIn = (float)((outRad - 10f) * 0.707f); drawLinePro(canvas, cx - oOut, cy - oOut, cx - oIn, cy - oIn); drawLinePro(canvas, cx + oIn, cy + oIn, cx + oOut, cy + oOut); drawLinePro(canvas, cx - oOut, cy + oOut, cx - oIn, cy + oIn); drawLinePro(canvas, cx + oIn, cy - oIn, cx + oOut, cy - oOut); }
                 if (shape % 2 == 0) { float tickSpacing = outRad / 4f; for(int i=1; i<=3; i++) { drawCirclePro(canvas, cx + (i*tickSpacing), cy, 1.5f, true); drawCirclePro(canvas, cx - (i*tickSpacing), cy, 1.5f, true); drawCirclePro(canvas, cx, cy + (i*tickSpacing), 1.5f, true); drawCirclePro(canvas, cx, cy - (i*tickSpacing), 1.5f, true); } }
             }
+            canvas.restore();
         }
     }
 }

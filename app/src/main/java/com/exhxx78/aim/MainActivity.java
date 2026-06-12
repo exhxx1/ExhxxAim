@@ -33,14 +33,14 @@ public class MainActivity extends Activity {
         mainLayout.setPadding(40, 60, 40, 60);
 
         TextView title = new TextView(this); title.setText("EXHXX78 AIM PRO"); title.setTextColor(Color.parseColor("#00E5FF")); title.setTextSize(32); title.setTypeface(null, Typeface.BOLD); title.setGravity(Gravity.CENTER); mainLayout.addView(title);
-        TextView subTitle = new TextView(this); subTitle.setText("ESPORTS EDITION 🎯"); subTitle.setTextColor(Color.parseColor("#FFD700")); subTitle.setTextSize(18); subTitle.setGravity(Gravity.CENTER); subTitle.setPadding(0, 0, 0, 40); mainLayout.addView(subTitle);
+        TextView subTitle = new TextView(this); subTitle.setText("PURE ESPORTS AIM 🎯"); subTitle.setTextColor(Color.parseColor("#FFD700")); subTitle.setTextSize(18); subTitle.setGravity(Gravity.CENTER); subTitle.setPadding(0, 0, 0, 40); mainLayout.addView(subTitle);
 
         LinearLayout infoCard = new LinearLayout(this); infoCard.setOrientation(LinearLayout.VERTICAL);
         GradientDrawable cardBg = new GradientDrawable(); cardBg.setColor(Color.parseColor("#1A1A2E")); cardBg.setCornerRadius(20f); cardBg.setStroke(3, Color.parseColor("#313244")); infoCard.setBackground(cardBg); infoCard.setPadding(40, 40, 40, 40);
         LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT); cardParams.setMargins(0, 0, 0, 60); infoCard.setLayoutParams(cardParams);
         
-        TextView infoTitle = new TextView(this); infoTitle.setText("📌 خطوة التفعيل الجديدة:"); infoTitle.setTextColor(Color.WHITE); infoTitle.setTextSize(18); infoTitle.setTypeface(null, Typeface.BOLD); infoTitle.setPadding(0, 0, 0, 20); infoCard.addView(infoTitle);
-        TextView infoText = new TextView(this); infoText.setText("لأن التطبيق يحتوي على نظام (ثبات السلاح 🔫)، يجب تفعيله من إعدادات النظام:\n\n1. اضغط على (START AIM).\n2. سيوجهك للإعدادات (إمكانية الوصول).\n3. ابحث عن اسم التطبيق وقم بتفعيله.\n4. ستظهر الأيقونة العائمة فوراً وبدون أي مشاكل!"); infoText.setTextColor(Color.parseColor("#B0B0B0")); infoText.setTextSize(15); infoText.setLineSpacing(10f, 1f); infoCard.addView(infoText);
+        TextView infoTitle = new TextView(this); infoTitle.setText("📌 طريقة التفعيل:"); infoTitle.setTextColor(Color.WHITE); infoTitle.setTextSize(18); infoTitle.setTypeface(null, Typeface.BOLD); infoTitle.setPadding(0, 0, 0, 20); infoCard.addView(infoTitle);
+        TextView infoText = new TextView(this); infoText.setText("1. اضغط على (START AIM).\n2. قم بتفعيل التطبيق من (إمكانية الوصول) لضمان ظهوره فوق كل الألعاب بقوة.\n3. ستظهر أيقونة ( ≡ ) عائمة، اضغط عليها للتحكم بلون وحجم وشكل الإيم!"); infoText.setTextColor(Color.parseColor("#B0B0B0")); infoText.setTextSize(15); infoText.setLineSpacing(10f, 1f); infoCard.addView(infoText);
         mainLayout.addView(infoCard);
 
         Button btnAimToggle = new Button(this); btnAimToggle.setText("START AIM (تشغيل)"); btnAimToggle.setTextSize(18); btnAimToggle.setTypeface(null, Typeface.BOLD); btnAimToggle.setTextColor(Color.WHITE);
@@ -59,36 +59,29 @@ public class MainActivity extends Activity {
         TextView developerText = new TextView(this); developerText.setText("Developed by:\nMuhammad Adnan (@m_7004)"); developerText.setTextColor(Color.parseColor("#808080")); developerText.setTextSize(14); developerText.setGravity(Gravity.CENTER); mainLayout.addView(developerText);
         scrollView.addView(mainLayout); setContentView(scrollView);
 
-        // البرمجة الذكية للأزرار
         btnAimToggle.setOnClickListener(v -> {
             if (!Settings.canDrawOverlays(this)) {
                 Toast.makeText(this, "يرجى تفعيل صلاحية الظهور فوق التطبيقات أولاً", Toast.LENGTH_LONG).show();
                 startActivity(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getPackageName())));
             } else if (!isAccessibilityEnabled()) {
-                Toast.makeText(this, "يرجى تفعيل التطبيق من إعدادات (إمكانية الوصول) ليعمل ثبات السلاح!", Toast.LENGTH_LONG).show();
+                Toast.makeText(this, "يرجى تفعيل التطبيق من (إمكانية الوصول) لتخطي حماية الأندرويد!", Toast.LENGTH_LONG).show();
                 startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
             } else {
                 Toast.makeText(this, "✅ الخدمة مفعلة بالكامل! الأيقونة ظاهرة في الشاشة.", Toast.LENGTH_SHORT).show();
             }
         });
 
-        btnKill.setOnClickListener(v -> {
-            finishAffinity(); System.exit(0);
-        });
-
+        btnKill.setOnClickListener(v -> { finishAffinity(); System.exit(0); });
         btnTelegram.setOnClickListener(v -> { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/exhxx78"))); });
     }
 
-    // دالة للتحقق إذا كانت خدمة الثبات تعمل أو لا
     private boolean isAccessibilityEnabled() {
         String expectedName = getPackageName() + "/" + CrosshairService.class.getName();
         String enabledServices = Settings.Secure.getString(getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
         if (enabledServices == null) return false;
         TextUtils.SimpleStringSplitter splitter = new TextUtils.SimpleStringSplitter(':');
         splitter.setString(enabledServices);
-        while (splitter.hasNext()) {
-            if (splitter.next().equalsIgnoreCase(expectedName)) return true;
-        }
+        while (splitter.hasNext()) { if (splitter.next().equalsIgnoreCase(expectedName)) return true; }
         return false;
     }
 }
