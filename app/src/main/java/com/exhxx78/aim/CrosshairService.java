@@ -24,8 +24,9 @@ public class CrosshairService extends Service {
     private WindowManager windowManager;
     private DrawView crosshairView;
     private WindowManager.LayoutParams crossParams;
+    private ScrollView rootMenuScroll; // الحاوية الرئيسية للتمرير
     private LinearLayout menuLayout;
-    private TextView btnSettings; // <-- السطر اللي كان مفقود ومسوي المشكلة!
+    private TextView btnSettings;
     private SharedPreferences prefs;
     private boolean isAimVisible = true;
     private boolean isLockMode = true;
@@ -58,21 +59,41 @@ public class CrosshairService extends Service {
         crossParams.gravity = Gravity.CENTER;
         windowManager.addView(crosshairView, crossParams);
 
+        // --- إصلاح القائمة: وضع القائمة بالكامل داخل ScrollView ---
+        rootMenuScroll = new ScrollView(this);
+        rootMenuScroll.setBackgroundColor(Color.parseColor("#F2121212"));
+        rootMenuScroll.setVisibility(View.GONE);
+
         menuLayout = new LinearLayout(this);
         menuLayout.setOrientation(LinearLayout.VERTICAL);
-        menuLayout.setBackgroundColor(Color.parseColor("#F2121212"));
         menuLayout.setPadding(20, 20, 20, 20);
-        menuLayout.setVisibility(View.GONE);
 
-        // زر التحريك والسنتر
+        // قسم التحريك والتوسيط
+        LinearLayout moveLayout = new LinearLayout(this);
+        moveLayout.setOrientation(LinearLayout.HORIZONTAL);
+        LinearLayout.LayoutParams moveLp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT); 
+        moveLp.setMargins(0, 0, 0, 20);
+        moveLayout.setLayoutParams(moveLp);
+
         Button btnMove = new Button(this);
-        btnMove.setText("الإيم مقفول ✅ (اضغط للتحريك)");
+        btnMove.setText("الإيم مقفول ✅");
         btnMove.setTextColor(Color.WHITE);
         GradientDrawable moveBg = new GradientDrawable(); moveBg.setColor(Color.parseColor("#00C853")); moveBg.setCornerRadius(10f);
         btnMove.setBackground(moveBg);
         btnMove.setPadding(10, 20, 10, 20);
-        LinearLayout.LayoutParams moveLp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT); moveLp.setMargins(0, 0, 0, 20); btnMove.setLayoutParams(moveLp);
-        
+        LinearLayout.LayoutParams btnMoveLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+        btnMoveLp.setMargins(0, 0, 10, 0);
+        btnMove.setLayoutParams(btnMoveLp);
+
+        Button btnCenter = new Button(this);
+        btnCenter.setText("توسيط 🎯");
+        btnCenter.setTextColor(Color.WHITE);
+        GradientDrawable centerBg = new GradientDrawable(); centerBg.setColor(Color.parseColor("#0088CC")); centerBg.setCornerRadius(10f);
+        btnCenter.setBackground(centerBg);
+        btnCenter.setPadding(10, 20, 10, 20);
+        LinearLayout.LayoutParams btnCenterLp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        btnCenter.setLayoutParams(btnCenterLp);
+
         crossParams.flags |= WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
         windowManager.updateViewLayout(crosshairView, crossParams);
 
@@ -80,24 +101,35 @@ public class CrosshairService extends Service {
             isLockMode = !isLockMode;
             if(isLockMode) {
                 crossParams.flags |= WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
-                btnMove.setText("الإيم مقفول ✅ (اضغط للتحريك)");
+                btnMove.setText("الإيم مقفول ✅");
                 moveBg.setColor(Color.parseColor("#00C853"));
             } else {
                 crossParams.flags &= ~WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
-                btnMove.setText("الإيم حر للتحريك 🕹️ (اضغط للقفل)");
+                btnMove.setText("الإيم حر 🕹️");
                 moveBg.setColor(Color.parseColor("#FFD700"));
             }
             btnMove.setBackground(moveBg);
             windowManager.updateViewLayout(crosshairView, crossParams);
         });
-        menuLayout.addView(btnMove);
+
+        // برمجة زر التوسيط لإرجاع الإيم للنص بالضبط
+        btnCenter.setOnClickListener(v -> {
+            crossParams.x = 0;
+            crossParams.y = 0;
+            prefs.edit().putInt("offsetX", 0).putInt("offsetY", 0).apply();
+            windowManager.updateViewLayout(crosshairView, crossParams);
+        });
+
+        moveLayout.addView(btnMove);
+        moveLayout.addView(btnCenter);
+        menuLayout.addView(moveLayout);
 
         // شريط الألوان
         LinearLayout colorLayout = new LinearLayout(this); colorLayout.setOrientation(LinearLayout.HORIZONTAL); colorLayout.setGravity(Gravity.CENTER);
         String[] colors = {"#39FF14", "#FF0000", "#00E5FF", "#FFD700", "#FFFFFF"}; 
         for (String c : colors) {
             Button cb = new Button(this); GradientDrawable cd = new GradientDrawable(); cd.setShape(GradientDrawable.OVAL); cd.setColor(Color.parseColor(c)); cd.setStroke(2, Color.DKGRAY); cb.setBackground(cd);
-            LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(70, 70); clp.setMargins(10, 10, 10, 20); cb.setLayoutParams(clp);
+            LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(80, 80); clp.setMargins(10, 10, 10, 20); cb.setLayoutParams(clp);
             cb.setOnClickListener(v -> { prefs.edit().putString("color", c).apply(); crosshairView.setColor(c); }); colorLayout.addView(cb);
         }
         menuLayout.addView(colorLayout);
@@ -135,23 +167,26 @@ public class CrosshairService extends Service {
         btnCloseAll.setOnClickListener(v -> stopSelf());
         menuLayout.addView(btnCloseAll);
 
-        // قائمة الأشكال (101 سكوب)
-        ScrollView scrollView = new ScrollView(this); LinearLayout list = new LinearLayout(this); list.setOrientation(LinearLayout.VERTICAL);
+        // قائمة الأشكال (تم دمجها مباشرة داخل القائمة الرئيسية)
+        LinearLayout list = new LinearLayout(this); list.setOrientation(LinearLayout.VERTICAL);
         String[] scopes = new String[101]; scopes[0] = "1. دائرة القنص العملاقة (الأساسية) 🎯";
         for (int i = 1; i <= 100; i++) { scopes[i] = (i + 1) + ". سكوب تكتيكي عملاق V" + i + " 🔭"; }
         for (int i = 0; i < scopes.length; i++) {
             Button b = new Button(this); b.setText(scopes[i]); b.setTextColor(Color.parseColor("#E0E0E0"));
             GradientDrawable btnBg = new GradientDrawable(); btnBg.setColor(Color.parseColor("#242424")); btnBg.setCornerRadius(8f); b.setBackground(btnBg); b.setPadding(20, 15, 20, 15);
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT); lp.setMargins(0, 5, 0, 5); b.setLayoutParams(lp);
-            final int finalI = i; b.setOnClickListener(v -> { prefs.edit().putInt("shape", finalI).apply(); crosshairView.setShape(finalI); menuLayout.setVisibility(View.GONE); }); list.addView(b);
+            final int finalI = i; b.setOnClickListener(v -> { prefs.edit().putInt("shape", finalI).apply(); crosshairView.setShape(finalI); rootMenuScroll.setVisibility(View.GONE); }); list.addView(b);
         }
-        scrollView.addView(list); menuLayout.addView(scrollView);
+        menuLayout.addView(list);
+        
+        // إدخال المحتوى بالكامل في السكرول الرئيسي
+        rootMenuScroll.addView(menuLayout);
 
-        WindowManager.LayoutParams menuParams = new WindowManager.LayoutParams(600, 850, layoutFlag, WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE, PixelFormat.TRANSLUCENT);
-        menuParams.gravity = Gravity.TOP | Gravity.START; menuParams.x = 200; menuParams.y = 200;
-        windowManager.addView(menuLayout, menuParams);
+        WindowManager.LayoutParams menuParams = new WindowManager.LayoutParams(600, 1000, layoutFlag, WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE, PixelFormat.TRANSLUCENT);
+        menuParams.gravity = Gravity.TOP | Gravity.START; menuParams.x = 200; menuParams.y = 150;
+        windowManager.addView(rootMenuScroll, menuParams);
 
-        // زر القائمة العائم (تم تعديل تعريفه هنا)
+        // زر القائمة العائم
         btnSettings = new TextView(this); 
         btnSettings.setText("≡"); btnSettings.setTextColor(Color.WHITE); btnSettings.setTextSize(30); btnSettings.setGravity(Gravity.CENTER);
         GradientDrawable bg = new GradientDrawable(); bg.setShape(GradientDrawable.OVAL); bg.setColor(Color.parseColor("#90000000")); btnSettings.setBackground(bg);
@@ -167,10 +202,10 @@ public class CrosshairService extends Service {
                     case MotionEvent.ACTION_MOVE:
                         if (Math.abs(event.getRawX() - initialTouchX) > 10 || Math.abs(event.getRawY() - initialTouchY) > 10) {
                             isDragging = true; btnParams.x = initialX + (int) (event.getRawX() - initialTouchX); btnParams.y = initialY + (int) (event.getRawY() - initialTouchY); windowManager.updateViewLayout(btnSettings, btnParams);
-                            menuParams.x = btnParams.x + 130; menuParams.y = btnParams.y; if (menuLayout.getVisibility() == View.VISIBLE) { windowManager.updateViewLayout(menuLayout, menuParams); }
+                            menuParams.x = btnParams.x + 130; menuParams.y = btnParams.y; if (rootMenuScroll.getVisibility() == View.VISIBLE) { windowManager.updateViewLayout(rootMenuScroll, menuParams); }
                         } return true;
                     case MotionEvent.ACTION_UP:
-                        if (!isDragging) { menuLayout.setVisibility(menuLayout.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE); } return true;
+                        if (!isDragging) { rootMenuScroll.setVisibility(rootMenuScroll.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE); } return true;
                 } return false;
             }
         });
@@ -208,7 +243,7 @@ public class CrosshairService extends Service {
         super.onDestroy();
         if (crosshairView != null) windowManager.removeView(crosshairView);
         if (btnSettings != null) windowManager.removeView(btnSettings);
-        if (menuLayout != null) windowManager.removeView(menuLayout);
+        if (rootMenuScroll != null) windowManager.removeView(rootMenuScroll);
     }
 
     private class DrawView extends View {
