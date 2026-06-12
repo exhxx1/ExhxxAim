@@ -25,9 +25,10 @@ public class CrosshairService extends Service {
     private DrawView crosshairView;
     private WindowManager.LayoutParams crossParams;
     private LinearLayout menuLayout;
+    private TextView btnSettings; // <-- السطر اللي كان مفقود ومسوي المشكلة!
     private SharedPreferences prefs;
     private boolean isAimVisible = true;
-    private boolean isLockMode = true; // وضع القفل الافتراضي
+    private boolean isLockMode = true;
 
     @Override public IBinder onBind(Intent intent) { return null; }
 
@@ -48,7 +49,6 @@ public class CrosshairService extends Service {
         String savedColor = prefs.getString("color", "#39FF14");
         float savedScale = prefs.getInt("aim_size_progress", 100) / 100f;
 
-        // إيم يتحرك بحرية عند فك القفل
         crosshairView = new DrawView(this, shapeType, savedColor, savedScale);
         crossParams = new WindowManager.LayoutParams(
                 WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT, layoutFlag,
@@ -58,7 +58,6 @@ public class CrosshairService extends Service {
         crossParams.gravity = Gravity.CENTER;
         windowManager.addView(crosshairView, crossParams);
 
-        // القائمة العائمة
         menuLayout = new LinearLayout(this);
         menuLayout.setOrientation(LinearLayout.VERTICAL);
         menuLayout.setBackgroundColor(Color.parseColor("#F2121212"));
@@ -74,7 +73,6 @@ public class CrosshairService extends Service {
         btnMove.setPadding(10, 20, 10, 20);
         LinearLayout.LayoutParams moveLp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT); moveLp.setMargins(0, 0, 0, 20); btnMove.setLayoutParams(moveLp);
         
-        // قفل الإيم الافتراضي
         crossParams.flags |= WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
         windowManager.updateViewLayout(crosshairView, crossParams);
 
@@ -115,7 +113,7 @@ public class CrosshairService extends Service {
         });
         sizeBox.addView(sizeBar); menuLayout.addView(sizeBox);
 
-        // زر إخفاء/إظهار
+        // زر إخفاء الإيم
         Button btnToggleAim = new Button(this);
         btnToggleAim.setText("إخفاء الإيم 👁️");
         btnToggleAim.setTextColor(Color.WHITE);
@@ -130,14 +128,14 @@ public class CrosshairService extends Service {
         });
         menuLayout.addView(btnToggleAim);
 
-        // زر الإغلاق 
+        // زر الإغلاق
         Button btnCloseAll = new Button(this); btnCloseAll.setText("إيقاف التطبيق بالكامل [ X ]"); btnCloseAll.setTextColor(Color.WHITE);
         GradientDrawable closeBg = new GradientDrawable(); closeBg.setColor(Color.parseColor("#D50000")); closeBg.setCornerRadius(10f);
         btnCloseAll.setBackground(closeBg); btnCloseAll.setPadding(10, 20, 10, 20); btnCloseAll.setLayoutParams(moveLp);
         btnCloseAll.setOnClickListener(v -> stopSelf());
         menuLayout.addView(btnCloseAll);
 
-        // قائمة الأشكال
+        // قائمة الأشكال (101 سكوب)
         ScrollView scrollView = new ScrollView(this); LinearLayout list = new LinearLayout(this); list.setOrientation(LinearLayout.VERTICAL);
         String[] scopes = new String[101]; scopes[0] = "1. دائرة القنص العملاقة (الأساسية) 🎯";
         for (int i = 1; i <= 100; i++) { scopes[i] = (i + 1) + ". سكوب تكتيكي عملاق V" + i + " 🔭"; }
@@ -153,8 +151,9 @@ public class CrosshairService extends Service {
         menuParams.gravity = Gravity.TOP | Gravity.START; menuParams.x = 200; menuParams.y = 200;
         windowManager.addView(menuLayout, menuParams);
 
-        // زر القائمة العائم
-        TextView btnSettings = new TextView(this); btnSettings.setText("≡"); btnSettings.setTextColor(Color.WHITE); btnSettings.setTextSize(30); btnSettings.setGravity(Gravity.CENTER);
+        // زر القائمة العائم (تم تعديل تعريفه هنا)
+        btnSettings = new TextView(this); 
+        btnSettings.setText("≡"); btnSettings.setTextColor(Color.WHITE); btnSettings.setTextSize(30); btnSettings.setGravity(Gravity.CENTER);
         GradientDrawable bg = new GradientDrawable(); bg.setShape(GradientDrawable.OVAL); bg.setColor(Color.parseColor("#90000000")); btnSettings.setBackground(bg);
         WindowManager.LayoutParams btnParams = new WindowManager.LayoutParams(120, 120, layoutFlag, WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE, PixelFormat.TRANSLUCENT);
         btnParams.gravity = Gravity.TOP | Gravity.START; btnParams.x = 50; btnParams.y = 200;
@@ -177,7 +176,7 @@ public class CrosshairService extends Service {
         });
         windowManager.addView(btnSettings, btnParams);
         
-        // نظام السحب والحفظ التلقائي للإيم
+        // نظام السحب والحفظ
         crosshairView.setOnTouchListener(new View.OnTouchListener() {
             private int initialX, initialY; private float initialTouchX, initialTouchY;
             @Override
@@ -199,7 +198,6 @@ public class CrosshairService extends Service {
             }
         });
         
-        // استرجاع السنتر المحفوظ مسبقاً
         crossParams.x = prefs.getInt("offsetX", 0);
         crossParams.y = prefs.getInt("offsetY", 0);
         windowManager.updateViewLayout(crosshairView, crossParams);
