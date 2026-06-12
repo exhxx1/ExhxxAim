@@ -28,12 +28,14 @@ public class MacroService extends AccessibilityService {
         @Override
         public void run() {
             if (isFiring) {
-                int[] location = new int[2];
-                targetView.getLocationOnScreen(location);
-                float x = location[0] + (targetView.getWidth() / 2f);
-                float y = location[1] + (targetView.getHeight() / 2f);
+                // أخذ الإحداثيات الدقيقة من الشاشة مباشرة
+                float x = targetParams.x + (targetView.getWidth() / 2f);
+                float y = targetParams.y + (targetView.getHeight() / 2f);
+                
                 performClickAt(x, y);
-                handler.postDelayed(this, 30); // السرعة الجنونية: نقرة كل 30 ملي ثانية
+                
+                // السرعة الجنونية القصوى (10 ملي ثانية بين كل نقرة)
+                handler.postDelayed(this, 10); 
             }
         }
     };
@@ -46,7 +48,6 @@ public class MacroService extends AccessibilityService {
             ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY 
             : WindowManager.LayoutParams.TYPE_PHONE;
 
-        // 1. علامة الهدف (تسحبها فوق زر الرمي باللعبة)
         targetView = new TextView(this);
         ((TextView)targetView).setText("🎯");
         ((TextView)targetView).setTextSize(30);
@@ -54,7 +55,7 @@ public class MacroService extends AccessibilityService {
         GradientDrawable targetBg = new GradientDrawable();
         targetBg.setShape(GradientDrawable.OVAL);
         targetBg.setStroke(4, Color.RED);
-        targetBg.setColor(Color.parseColor("#40FF0000")); // شفاف
+        targetBg.setColor(Color.parseColor("#40FF0000"));
         targetView.setBackground(targetBg);
 
         targetParams = new WindowManager.LayoutParams(
@@ -66,13 +67,12 @@ public class MacroService extends AccessibilityService {
         makeDraggable(targetView, targetParams);
         windowManager.addView(targetView, targetParams);
 
-        // 2. زر إطلاق الماكرو (تضغط عليه باستمرار للرمي)
         triggerView = new Button(this);
         ((Button)triggerView).setText("🔥 زر الماكرو");
         ((Button)triggerView).setTextColor(Color.WHITE);
         GradientDrawable triggerBg = new GradientDrawable();
         triggerBg.setCornerRadius(30f);
-        triggerBg.setColor(Color.parseColor("#D00000")); // أحمر
+        triggerBg.setColor(Color.parseColor("#D00000"));
         triggerBg.setStroke(3, Color.BLACK);
         triggerView.setBackground(triggerBg);
 
@@ -83,7 +83,6 @@ public class MacroService extends AccessibilityService {
         triggerParams.gravity = Gravity.TOP | Gravity.START;
         triggerParams.x = 100; triggerParams.y = 100;
 
-        // كود سحب وإفلات زر الإطلاق + تفعيل الرمي
         triggerView.setOnTouchListener(new View.OnTouchListener() {
             private int initialX, initialY;
             private float initialTouchX, initialTouchY;
@@ -92,30 +91,43 @@ public class MacroService extends AccessibilityService {
             public boolean onTouch(View v, MotionEvent event) {
                 switch (event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
+                        // السحر هنا: تحويل الهدف إلى "شبح" لتخترقه النقرات
+                        targetParams.flags |= WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
+                        windowManager.updateViewLayout(targetView, targetParams);
+
                         initialX = triggerParams.x; initialY = triggerParams.y;
                         initialTouchX = event.getRawX(); initialTouchY = event.getRawY();
                         isDragging = false;
                         isFiring = true;
-                        handler.post(fireRunnable); // بدء الرشق
-                        triggerBg.setColor(Color.parseColor("#00FF00")); // تحويله للأخضر أثناء الرمي
+                        handler.post(fireRunnable);
+                        triggerBg.setColor(Color.parseColor("#00FF00"));
                         triggerView.setBackground(triggerBg);
                         return true;
+
                     case MotionEvent.ACTION_MOVE:
                         if (Math.abs(event.getRawX() - initialTouchX) > 15 || Math.abs(event.getRawY() - initialTouchY) > 15) {
                             isDragging = true;
-                            isFiring = false; // إيقاف الرمي أثناء سحب الزر
+                            if (isFiring) {
+                                isFiring = false;
+                                // إرجاع الهدف للحالة الصلبة
+                                targetParams.flags &= ~WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
+                                windowManager.updateViewLayout(targetView, targetParams);
+                            }
                             triggerBg.setColor(Color.parseColor("#D00000"));
                             triggerView.setBackground(triggerBg);
-                        }
-                        if (isDragging) {
                             triggerParams.x = initialX + (int) (event.getRawX() - initialTouchX);
                             triggerParams.y = initialY + (int) (event.getRawY() - initialTouchY);
                             windowManager.updateViewLayout(triggerView, triggerParams);
                         }
                         return true;
+
                     case MotionEvent.ACTION_UP:
                     case MotionEvent.ACTION_CANCEL:
-                        isFiring = false; // توقف الرمي عند رفع الإصبع
+                        isFiring = false;
+                        // إرجاع الهدف للحالة الصلبة عند رفع الإصبع
+                        targetParams.flags &= ~WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
+                        windowManager.updateViewLayout(targetView, targetParams);
+
                         triggerBg.setColor(Color.parseColor("#D00000"));
                         triggerView.setBackground(triggerBg);
                         return true;
@@ -151,8 +163,11 @@ public class MacroService extends AccessibilityService {
     private void performClickAt(float x, float y) {
         Path path = new Path();
         path.moveTo(x, y);
+        path.lineTo(x + 1, y + 1); 
+        
         GestureDescription.Builder builder = new GestureDescription.Builder();
-        builder.addStroke(new GestureDescription.StrokeDescription(path, 0, 10)); // 10ms مدة الضغطة
+        // مدة النقرة 1 ملي ثانية فقط! (أسرع استجابة في الأندرويد)
+        builder.addStroke(new GestureDescription.StrokeDescription(path, 0, 1)); 
         dispatchGesture(builder.build(), null, null);
     }
 
