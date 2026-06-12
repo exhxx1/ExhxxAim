@@ -11,6 +11,7 @@ import android.provider.Settings;
 import android.view.Gravity;
 import android.widget.Button;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -24,44 +25,65 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         prefs = getSharedPreferences("AimPrefs", MODE_PRIVATE);
 
-        // الشاشة الرئيسية
+        // الحاوية الرئيسية
         LinearLayout mainLayout = new LinearLayout(this);
         mainLayout.setOrientation(LinearLayout.VERTICAL);
-        mainLayout.setGravity(Gravity.CENTER);
-        mainLayout.setBackgroundColor(Color.parseColor("#1E1E2E"));
+        mainLayout.setBackgroundColor(Color.parseColor("#0F0F1A"));
 
+        // العنوان
         TextView title = new TextView(this);
-        title.setText("Exhxx Aim 🎯\nأشكال الإيم الاحترافية");
-        title.setTextColor(Color.parseColor("#F5C2E7"));
+        title.setText("Exhxx Aim Pro 🎯\nالمطور: محمد عدنان");
+        title.setTextColor(Color.parseColor("#00FFFF")); // لون سيبربانك
         title.setTextSize(24);
         title.setGravity(Gravity.CENTER);
-        title.setPadding(0, 0, 0, 50);
+        title.setPadding(0, 40, 0, 40);
+        mainLayout.addView(title);
 
-        // حاوية أزرار الأشكال
+        // ميزة التمرير (Scroll) لأن الأشكال صارت هواية
+        ScrollView scrollView = new ScrollView(this);
+        LinearLayout.LayoutParams scrollParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, 0, 1.0f);
+        scrollView.setLayoutParams(scrollParams);
+
         LinearLayout shapesLayout = new LinearLayout(this);
         shapesLayout.setOrientation(LinearLayout.VERTICAL);
         shapesLayout.setGravity(Gravity.CENTER);
-        shapesLayout.setPadding(0, 0, 0, 80);
 
-        String[] shapes = {"شكل 1: نقطة ليزر 🔴", "شكل 2: علامة زائد ➕", "شكل 3: دائرة مجوفة ⭕", "شكل 4: قناص احترافي 🎯"};
+        // قائمة بـ 10 أشكال عالمية
+        String[] shapes = {
+            "1. نقطة الليزر الاحترافية (Dot)", 
+            "2. كلاسيك CS:GO (Cross)", 
+            "3. أوفر واتش (Hollow Circle)", 
+            "4. إيم Apex Legends (Chevron)", 
+            "5. تقاطع فالورانت (X-Cross)", 
+            "6. سيبربانك (Brackets) [ . ]", 
+            "7. إيم الرشاشات T-Shape", 
+            "8. شوتكن رينك (Double Circle)", 
+            "9. سنايبر سكوب (Sniper Pro)", 
+            "10. النجمة الماسية (Diamond)"
+        };
+
         for (int i = 0; i < shapes.length; i++) {
             Button btnShape = new Button(this);
             btnShape.setText(shapes[i]);
             btnShape.setTextColor(Color.WHITE);
-            btnShape.setBackgroundColor(Color.parseColor("#313244"));
-            btnShape.setPadding(30, 20, 30, 20);
+            
+            GradientDrawable btnBg = new GradientDrawable();
+            btnBg.setColor(Color.parseColor("#1A1A2E"));
+            btnBg.setCornerRadius(20f);
+            btnBg.setStroke(2, Color.parseColor("#00FFFF"));
+            btnShape.setBackground(btnBg);
+            btnShape.setPadding(0, 30, 0, 30);
             
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-            lp.setMargins(50, 10, 50, 10);
+            lp.setMargins(60, 15, 60, 15);
             btnShape.setLayoutParams(lp);
 
             final int shapeType = i;
             btnShape.setOnClickListener(v -> {
                 prefs.edit().putInt("shape", shapeType).apply();
-                Toast.makeText(this, "تم اختيار " + shapes[shapeType], Toast.LENGTH_SHORT).show();
-                
-                // إعادة تشغيل الإيم فوراً لتطبيق الشكل الجديد إذا كان شغال
+                Toast.makeText(this, "تم تفعيل: " + shapes[shapeType], Toast.LENGTH_SHORT).show();
                 if (isAimActive) {
                     stopService(new Intent(this, CrosshairService.class));
                     startService(new Intent(this, CrosshairService.class));
@@ -69,26 +91,27 @@ public class MainActivity extends Activity {
             });
             shapesLayout.addView(btnShape);
         }
+        
+        scrollView.addView(shapesLayout);
+        mainLayout.addView(scrollView);
 
-        // زر التشغيل والإيقاف
+        // زر التشغيل أسفل الشاشة
         btnToggle = new Button(this);
         btnToggle.setText("تشغيل الإيم 🟢");
-        btnToggle.setTextSize(20);
+        btnToggle.setTextSize(22);
         btnToggle.setTextColor(Color.WHITE);
         GradientDrawable shape = new GradientDrawable();
-        shape.setCornerRadius(50f);
-        shape.setColor(Color.parseColor("#A6E3A1"));
+        shape.setCornerRadius(0f);
+        shape.setColor(Color.parseColor("#00B050"));
         btnToggle.setBackground(shape);
-        btnToggle.setPadding(60, 40, 60, 40);
+        btnToggle.setPadding(0, 50, 0, 50);
 
-        mainLayout.addView(title);
-        mainLayout.addView(shapesLayout);
         mainLayout.addView(btnToggle);
         setContentView(mainLayout);
 
         btnToggle.setOnClickListener(v -> {
             if (!Settings.canDrawOverlays(this)) {
-                Toast.makeText(this, "يرجى تفعيل إذن الظهور فوق التطبيقات!", Toast.LENGTH_LONG).show();
+                Toast.makeText(this, "فعل إذن الظهور فوق التطبيقات!", Toast.LENGTH_LONG).show();
                 startActivity(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getPackageName())));
             } else {
                 toggleCrosshair();
@@ -98,20 +121,15 @@ public class MainActivity extends Activity {
 
     private void toggleCrosshair() {
         Intent serviceIntent = new Intent(this, CrosshairService.class);
-        GradientDrawable shape = new GradientDrawable();
-        shape.setCornerRadius(50f);
-
         if (!isAimActive) {
             startService(serviceIntent);
             btnToggle.setText("إيقاف الإيم 🔴");
-            shape.setColor(Color.parseColor("#F38BA8"));
-            btnToggle.setBackground(shape);
+            btnToggle.setBackgroundColor(Color.parseColor("#D00000"));
             isAimActive = true;
         } else {
             stopService(serviceIntent);
             btnToggle.setText("تشغيل الإيم 🟢");
-            shape.setColor(Color.parseColor("#A6E3A1"));
-            btnToggle.setBackground(shape);
+            btnToggle.setBackgroundColor(Color.parseColor("#00B050"));
             isAimActive = false;
         }
     }
