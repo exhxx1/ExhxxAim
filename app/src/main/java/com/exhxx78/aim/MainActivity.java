@@ -11,7 +11,6 @@ import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.Settings;
-import android.text.TextUtils;
 import android.view.Gravity;
 import android.widget.Button;
 import android.widget.LinearLayout;
@@ -20,6 +19,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 public class MainActivity extends Activity {
+    private boolean isAimActive = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -40,7 +41,7 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT); cardParams.setMargins(0, 0, 0, 60); infoCard.setLayoutParams(cardParams);
         
         TextView infoTitle = new TextView(this); infoTitle.setText("📌 طريقة التفعيل:"); infoTitle.setTextColor(Color.WHITE); infoTitle.setTextSize(18); infoTitle.setTypeface(null, Typeface.BOLD); infoTitle.setPadding(0, 0, 0, 20); infoCard.addView(infoTitle);
-        TextView infoText = new TextView(this); infoText.setText("1. اضغط على (START AIM).\n2. قم بتفعيل التطبيق من (إمكانية الوصول) لضمان ظهوره فوق كل الألعاب بقوة.\n3. ستظهر أيقونة ( ≡ ) عائمة، اضغط عليها للتحكم بلون وحجم وشكل الإيم!"); infoText.setTextColor(Color.parseColor("#B0B0B0")); infoText.setTextSize(15); infoText.setLineSpacing(10f, 1f); infoCard.addView(infoText);
+        TextView infoText = new TextView(this); infoText.setText("1. اضغط على (START AIM).\n2. امنح صلاحية (الظهور فوق التطبيقات) فقط.\n3. ستظهر أيقونة ( ≡ ) في الشاشة.\n4. يمكنك إخفاء الإيم أو تغيير حجمه من القائمة العائمة."); infoText.setTextColor(Color.parseColor("#B0B0B0")); infoText.setTextSize(15); infoText.setLineSpacing(10f, 1f); infoCard.addView(infoText);
         mainLayout.addView(infoCard);
 
         Button btnAimToggle = new Button(this); btnAimToggle.setText("START AIM (تشغيل)"); btnAimToggle.setTextSize(18); btnAimToggle.setTypeface(null, Typeface.BOLD); btnAimToggle.setTextColor(Color.WHITE);
@@ -61,27 +62,28 @@ public class MainActivity extends Activity {
 
         btnAimToggle.setOnClickListener(v -> {
             if (!Settings.canDrawOverlays(this)) {
-                Toast.makeText(this, "يرجى تفعيل صلاحية الظهور فوق التطبيقات أولاً", Toast.LENGTH_LONG).show();
                 startActivity(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getPackageName())));
-            } else if (!isAccessibilityEnabled()) {
-                Toast.makeText(this, "يرجى تفعيل التطبيق من (إمكانية الوصول) لتخطي حماية الأندرويد!", Toast.LENGTH_LONG).show();
-                startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
             } else {
-                Toast.makeText(this, "✅ الخدمة مفعلة بالكامل! الأيقونة ظاهرة في الشاشة.", Toast.LENGTH_SHORT).show();
+                Intent serviceIntent = new Intent(this, CrosshairService.class);
+                if (!isAimActive) {
+                    startService(serviceIntent);
+                    btnAimToggle.setText("STOP AIM (إيقاف)");
+                    shapeStart.setColor(Color.parseColor("#FF6D00")); btnAimToggle.setBackground(shapeStart);
+                    isAimActive = true;
+                } else {
+                    stopService(serviceIntent);
+                    btnAimToggle.setText("START AIM (تشغيل)");
+                    shapeStart.setColor(Color.parseColor("#00C853")); btnAimToggle.setBackground(shapeStart);
+                    isAimActive = false;
+                }
             }
         });
 
-        btnKill.setOnClickListener(v -> { finishAffinity(); System.exit(0); });
+        btnKill.setOnClickListener(v -> { 
+            stopService(new Intent(this, CrosshairService.class));
+            finishAffinity(); 
+            System.exit(0); 
+        });
         btnTelegram.setOnClickListener(v -> { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/exhxx78"))); });
-    }
-
-    private boolean isAccessibilityEnabled() {
-        String expectedName = getPackageName() + "/" + CrosshairService.class.getName();
-        String enabledServices = Settings.Secure.getString(getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
-        if (enabledServices == null) return false;
-        TextUtils.SimpleStringSplitter splitter = new TextUtils.SimpleStringSplitter(':');
-        splitter.setString(enabledServices);
-        while (splitter.hasNext()) { if (splitter.next().equalsIgnoreCase(expectedName)) return true; }
-        return false;
     }
 }
