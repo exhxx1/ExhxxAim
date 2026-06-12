@@ -40,11 +40,14 @@ public class CrosshairService extends Service {
             ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY 
             : WindowManager.LayoutParams.TYPE_PHONE;
 
-        // 1. إنشاء الإيم بنص الشاشة (لا يمكن لمسه حتى لا يزعج اللعب)
         int shapeType = prefs.getInt("shape", 0); 
-        crosshairView = new DrawView(this, shapeType);
+        String savedColor = prefs.getString("color", "#39FF14"); // الأخضر هو الافتراضي
+
+        crosshairView = new DrawView(this, shapeType, savedColor);
+        
+        // كبرنا الشاشة إلى 400x400 حتى تستوعب الإيمات العملاقة براحتها
         WindowManager.LayoutParams crossParams = new WindowManager.LayoutParams(
-                180, 180, layoutFlag,
+                400, 400, layoutFlag,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | 
                 WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE |
                 WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN | 
@@ -54,13 +57,40 @@ public class CrosshairService extends Service {
         crossParams.gravity = Gravity.CENTER;
         windowManager.addView(crosshairView, crossParams);
 
-        // 2. إنشاء القائمة العائمة للأشكال (مخفية بالبداية)
+        // إنشاء القائمة العائمة
         menuLayout = new LinearLayout(this);
         menuLayout.setOrientation(LinearLayout.VERTICAL);
-        menuLayout.setBackgroundColor(Color.parseColor("#E60F0F1A")); // شفافية خفيفة
-        menuLayout.setPadding(10, 10, 10, 10);
-        menuLayout.setVisibility(View.GONE); // مخفية
+        menuLayout.setBackgroundColor(Color.parseColor("#E60F0F1A")); 
+        menuLayout.setPadding(15, 15, 15, 15);
+        menuLayout.setVisibility(View.GONE); 
 
+        // 1. إضافة شريط الألوان (Color Palette)
+        LinearLayout colorLayout = new LinearLayout(this);
+        colorLayout.setOrientation(LinearLayout.HORIZONTAL);
+        colorLayout.setGravity(Gravity.CENTER);
+        
+        String[] colors = {"#39FF14", "#FF0000", "#00FFFF", "#FFD700", "#FF00FF"}; // أخضر، أحمر، أزرق، أصفر، وردي
+        for (String c : colors) {
+            Button cb = new Button(this);
+            GradientDrawable cd = new GradientDrawable();
+            cd.setShape(GradientDrawable.OVAL);
+            cd.setColor(Color.parseColor(c));
+            cd.setStroke(3, Color.WHITE);
+            cb.setBackground(cd);
+            
+            LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(70, 70);
+            clp.setMargins(10, 10, 10, 20);
+            cb.setLayoutParams(clp);
+            
+            cb.setOnClickListener(v -> {
+                prefs.edit().putString("color", c).apply();
+                crosshairView.setColor(c); // تغيير اللون فوراً
+            });
+            colorLayout.addView(cb);
+        }
+        menuLayout.addView(colorLayout);
+
+        // 2. قائمة الأشكال والسكوبات
         ScrollView scrollView = new ScrollView(this);
         LinearLayout list = new LinearLayout(this);
         list.setOrientation(LinearLayout.VERTICAL);
@@ -69,8 +99,9 @@ public class CrosshairService extends Service {
             "1. ليزر 🔴", "2. كلاسيك ➕", "3. أوفر واتش ⭕", "4. Apex 🔺", 
             "5. فالورانت ❌", "6. سيبربانك [.]", "7. رشاش T", "8. شوتكن ◎", 
             "9. قناص بسيط 🎯", "10. نجمة ✦", 
-            "11. قناص واقعي (Mil-Dot) 🔭", "12. سكوب (ACOG) 🔽", 
-            "13. هولوكرافيك (Holo) 🎛️", "14. ريد دوت (Red Dot) ⭕"
+            "11. قناص واقعي 🔭", "12. سكوب (ACOG) 🔽", 
+            "13. هولوكرافيك 🎛️", "14. ريد دوت ⭕",
+            "15. علامة مرسيدس العملاقة ☮️", "16. دائرة القنص الكبيرة 🞇"
         };
 
         for (int i = 0; i < scopes.length; i++) {
@@ -87,8 +118,8 @@ public class CrosshairService extends Service {
             final int finalI = i;
             b.setOnClickListener(v -> {
                 prefs.edit().putInt("shape", finalI).apply();
-                crosshairView.setShape(finalI); // تغيير الإيم فوراً
-                menuLayout.setVisibility(View.GONE); // إخفاء القائمة بعد الاختيار
+                crosshairView.setShape(finalI);
+                menuLayout.setVisibility(View.GONE); 
             });
             list.addView(b);
         }
@@ -96,7 +127,7 @@ public class CrosshairService extends Service {
         menuLayout.addView(scrollView);
 
         WindowManager.LayoutParams menuParams = new WindowManager.LayoutParams(
-                450, 600, layoutFlag, // حجم القائمة
+                550, 700, layoutFlag, // كبرنا القائمة لتسع الألوان
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
                 PixelFormat.TRANSLUCENT
         );
@@ -104,19 +135,19 @@ public class CrosshairService extends Service {
         menuParams.x = 200; menuParams.y = 200;
         windowManager.addView(menuLayout, menuParams);
 
-        // 3. إنشاء زر الإعدادات العائم (⚙️)
+        // إنشاء زر الإعدادات العائم (⚙️)
         btnSettings = new TextView(this);
         btnSettings.setText("⚙️");
-        btnSettings.setTextSize(24);
+        btnSettings.setTextSize(26);
         btnSettings.setGravity(Gravity.CENTER);
         GradientDrawable bg = new GradientDrawable();
         bg.setShape(GradientDrawable.OVAL);
-        bg.setColor(Color.parseColor("#90000000")); // أسود شفاف
-        bg.setStroke(2, Color.parseColor("#00FFFF"));
+        bg.setColor(Color.parseColor("#90000000")); 
+        bg.setStroke(3, Color.parseColor("#FFD700"));
         btnSettings.setBackground(bg);
 
         WindowManager.LayoutParams btnParams = new WindowManager.LayoutParams(
-                100, 100, layoutFlag,
+                120, 120, layoutFlag,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
                 PixelFormat.TRANSLUCENT
         );
@@ -141,8 +172,7 @@ public class CrosshairService extends Service {
                             btnParams.x = initialX + (int) (event.getRawX() - initialTouchX);
                             btnParams.y = initialY + (int) (event.getRawY() - initialTouchY);
                             windowManager.updateViewLayout(btnSettings, btnParams);
-                            // تحريك القائمة مع الزر
-                            menuParams.x = btnParams.x + 110;
+                            menuParams.x = btnParams.x + 130;
                             menuParams.y = btnParams.y;
                             if (menuLayout.getVisibility() == View.VISIBLE) {
                                 windowManager.updateViewLayout(menuLayout, menuParams);
@@ -150,12 +180,8 @@ public class CrosshairService extends Service {
                         }
                         return true;
                     case MotionEvent.ACTION_UP:
-                        if (!isDragging) { // إذا كانت نقرة وليست سحب
-                            if (menuLayout.getVisibility() == View.VISIBLE) {
-                                menuLayout.setVisibility(View.GONE);
-                            } else {
-                                menuLayout.setVisibility(View.VISIBLE);
-                            }
+                        if (!isDragging) { 
+                            menuLayout.setVisibility(menuLayout.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE);
                         }
                         return true;
                 }
@@ -173,28 +199,36 @@ public class CrosshairService extends Service {
         if (menuLayout != null) windowManager.removeView(menuLayout);
     }
 
-    // محرك الرسم الاحترافي للإيم
     private class DrawView extends View {
         private Paint mainPaint, bgPaint;
         private int shape;
+        private String colorHex;
 
-        public DrawView(Context context, int shapeType) {
+        public DrawView(Context context, int shapeType, String colorHex) {
             super(context);
             this.shape = shapeType;
+            this.colorHex = colorHex;
+            
             mainPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-            mainPaint.setColor(Color.parseColor("#39FF14")); 
+            mainPaint.setColor(Color.parseColor(colorHex)); 
             mainPaint.setStyle(Paint.Style.STROKE);
-            mainPaint.setStrokeWidth(3f);
+            mainPaint.setStrokeWidth(4f); // عرض الخطوط الأساسية
             
             bgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
             bgPaint.setColor(Color.BLACK);
             bgPaint.setStyle(Paint.Style.STROKE);
-            bgPaint.setStrokeWidth(7f); 
+            bgPaint.setStrokeWidth(8f); // التظليل الأسود
         }
 
         public void setShape(int newShape) {
             this.shape = newShape;
-            invalidate(); // أمر فوري لإعادة رسم الإيم بالشكل الجديد
+            invalidate(); 
+        }
+
+        public void setColor(String newColor) {
+            this.colorHex = newColor;
+            mainPaint.setColor(Color.parseColor(newColor));
+            invalidate();
         }
 
         private void drawLinePro(Canvas c, float startX, float startY, float stopX, float stopY) {
@@ -223,7 +257,7 @@ public class CrosshairService extends Service {
                     drawLinePro(canvas, cx, cy - gap - len, cx, cy - gap); drawLinePro(canvas, cx, cy + gap, cx, cy + gap + len);
                     break;
                 case 2: drawCirclePro(canvas, cx, cy, 14f, false); drawCirclePro(canvas, cx, cy, 3f, true); break;
-                case 3: // Apex
+                case 3: 
                     Path bgP = new Path(); bgP.moveTo(cx - 15, cy + 10); bgP.lineTo(cx, cy - 10); bgP.lineTo(cx + 15, cy + 10);
                     canvas.drawPath(bgP, bgPaint); canvas.drawPath(bgP, mainPaint);
                     drawCirclePro(canvas, cx, cy + 15, 3f, true); break;
@@ -249,36 +283,45 @@ public class CrosshairService extends Service {
                     Path dP = new Path(); dP.moveTo(cx, cy - 20); dP.lineTo(cx + 20, cy); dP.lineTo(cx, cy + 20); dP.lineTo(cx - 20, cy); dP.close();
                     canvas.drawPath(dP, bgPaint); canvas.drawPath(dP, mainPaint);
                     drawCirclePro(canvas, cx, cy, 3f, true); break;
-                
-                // الأشكال الجديدة (السكوبات الواقعية)
-                case 10: // 11. قناص واقعي (Mil-Dot)
-                    drawLinePro(canvas, cx - 80, cy, cx + 80, cy);
-                    drawLinePro(canvas, cx, cy - 80, cx, cy + 80);
+                case 10: 
+                    drawLinePro(canvas, cx - 80, cy, cx + 80, cy); drawLinePro(canvas, cx, cy - 80, cx, cy + 80);
                     for(int i=1; i<=4; i++) {
-                        drawCirclePro(canvas, cx + (i*15), cy, 1.5f, true);
-                        drawCirclePro(canvas, cx - (i*15), cy, 1.5f, true);
-                        drawCirclePro(canvas, cx, cy + (i*15), 1.5f, true);
-                        drawCirclePro(canvas, cx, cy - (i*15), 1.5f, true);
+                        drawCirclePro(canvas, cx + (i*15), cy, 1.5f, true); drawCirclePro(canvas, cx - (i*15), cy, 1.5f, true);
+                        drawCirclePro(canvas, cx, cy + (i*15), 1.5f, true); drawCirclePro(canvas, cx, cy - (i*15), 1.5f, true);
                     }
                     break;
-                case 11: // 12. ACOG Scope (مثلثة)
+                case 11: 
                     Path acog = new Path(); acog.moveTo(cx, cy - 10); acog.lineTo(cx + 10, cy + 10); acog.lineTo(cx - 10, cy + 10); acog.close();
                     canvas.drawPath(acog, bgPaint); canvas.drawPath(acog, mainPaint);
                     drawLinePro(canvas, cx, cy + 15, cx, cy + 45);
-                    drawLinePro(canvas, cx - 6, cy + 25, cx + 6, cy + 25);
-                    drawLinePro(canvas, cx - 10, cy + 35, cx + 10, cy + 35);
+                    drawLinePro(canvas, cx - 6, cy + 25, cx + 6, cy + 25); drawLinePro(canvas, cx - 10, cy + 35, cx + 10, cy + 35);
                     break;
-                case 12: // 13. Holographic
+                case 12: 
                     drawCirclePro(canvas, cx, cy, 22f, false);
-                    drawLinePro(canvas, cx, cy - 22, cx, cy - 30);
-                    drawLinePro(canvas, cx, cy + 22, cx, cy + 30);
-                    drawLinePro(canvas, cx - 22, cy, cx - 30, cy);
-                    drawLinePro(canvas, cx + 22, cy, cx + 30, cy);
+                    drawLinePro(canvas, cx, cy - 22, cx, cy - 30); drawLinePro(canvas, cx, cy + 22, cx, cy + 30);
+                    drawLinePro(canvas, cx - 22, cy, cx - 30, cy); drawLinePro(canvas, cx + 22, cy, cx + 30, cy);
                     drawCirclePro(canvas, cx, cy, 3f, true);
                     break;
-                case 13: // 14. Red Dot
-                    drawCirclePro(canvas, cx, cy, 30f, false);
-                    drawCirclePro(canvas, cx, cy, 4f, true);
+                case 13: 
+                    drawCirclePro(canvas, cx, cy, 30f, false); drawCirclePro(canvas, cx, cy, 4f, true);
+                    break;
+
+                // التحديث العملاق (المرسيدس والدائرة العملاقة)
+                case 14: // 15. علامة مرسيدس العملاقة
+                    drawCirclePro(canvas, cx, cy, 80f, false); // دائرة عملاقة بحجم 80
+                    drawLinePro(canvas, cx, cy, cx, cy - 80); // خط للفوك
+                    drawLinePro(canvas, cx, cy, cx + 69, cy + 40); // خط للزاوية اليمين الجوه
+                    drawLinePro(canvas, cx, cy, cx - 69, cy + 40); // خط للزاوية اليسار الجوه
+                    drawCirclePro(canvas, cx, cy, 6f, true); // نقطة السنتر كبيرة
+                    break;
+
+                case 15: // 16. دائرة القنص الكبيرة
+                    drawCirclePro(canvas, cx, cy, 100f, false); // أكبر دائرة بالتطبيق
+                    drawLinePro(canvas, cx - 120, cy, cx - 80, cy); // خط يسار
+                    drawLinePro(canvas, cx + 80, cy, cx + 120, cy); // خط يمين
+                    drawLinePro(canvas, cx, cy - 120, cx, cy - 80); // خط فوك
+                    drawLinePro(canvas, cx, cy + 80, cx, cy + 120); // خط جوه
+                    drawCirclePro(canvas, cx, cy, 8f, true); // سنتر ضخم
                     break;
             }
         }
