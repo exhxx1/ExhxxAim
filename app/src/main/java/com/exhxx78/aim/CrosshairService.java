@@ -66,7 +66,7 @@ public class CrosshairService extends AccessibilityService {
         prefs = getSharedPreferences("AimPrefs", MODE_PRIVATE);
 
         int layoutFlag = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O 
-            ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY 
+            ? WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY 
             : WindowManager.LayoutParams.TYPE_PHONE;
 
         int shapeType = prefs.getInt("shape", 0); 
