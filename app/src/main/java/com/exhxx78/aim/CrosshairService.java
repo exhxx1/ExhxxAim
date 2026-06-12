@@ -24,7 +24,7 @@ public class CrosshairService extends Service {
     private WindowManager windowManager;
     private DrawView crosshairView;
     private WindowManager.LayoutParams crossParams;
-    private ScrollView rootMenuScroll; // الحاوية الرئيسية للتمرير
+    private ScrollView rootMenuScroll;
     private LinearLayout menuLayout;
     private TextView btnSettings;
     private SharedPreferences prefs;
@@ -59,7 +59,7 @@ public class CrosshairService extends Service {
         crossParams.gravity = Gravity.CENTER;
         windowManager.addView(crosshairView, crossParams);
 
-        // --- إصلاح القائمة: وضع القائمة بالكامل داخل ScrollView ---
+        // الحاوية الرئيسية القابلة للتمرير بالكامل
         rootMenuScroll = new ScrollView(this);
         rootMenuScroll.setBackgroundColor(Color.parseColor("#F2121212"));
         rootMenuScroll.setVisibility(View.GONE);
@@ -68,7 +68,7 @@ public class CrosshairService extends Service {
         menuLayout.setOrientation(LinearLayout.VERTICAL);
         menuLayout.setPadding(20, 20, 20, 20);
 
-        // قسم التحريك والتوسيط
+        // 1. قسم التحريك والتوسيط
         LinearLayout moveLayout = new LinearLayout(this);
         moveLayout.setOrientation(LinearLayout.HORIZONTAL);
         LinearLayout.LayoutParams moveLp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT); 
@@ -112,19 +112,76 @@ public class CrosshairService extends Service {
             windowManager.updateViewLayout(crosshairView, crossParams);
         });
 
-        // برمجة زر التوسيط لإرجاع الإيم للنص بالضبط
         btnCenter.setOnClickListener(v -> {
-            crossParams.x = 0;
-            crossParams.y = 0;
+            crossParams.x = 0; crossParams.y = 0;
             prefs.edit().putInt("offsetX", 0).putInt("offsetY", 0).apply();
             windowManager.updateViewLayout(crosshairView, crossParams);
         });
 
-        moveLayout.addView(btnMove);
-        moveLayout.addView(btnCenter);
+        moveLayout.addView(btnMove); moveLayout.addView(btnCenter);
         menuLayout.addView(moveLayout);
 
-        // شريط الألوان
+        // 2. الميزة الجديدة الفخمة: قسم منظور الآيباد الآمن 📺
+        LinearLayout ipadBox = new LinearLayout(this);
+        ipadBox.setOrientation(LinearLayout.VERTICAL);
+        ipadBox.setBackgroundColor(Color.parseColor("#1E1E2E"));
+        ipadBox.setPadding(15, 15, 15, 15);
+        LinearLayout.LayoutParams ipadBoxParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        ipadBoxParams.setMargins(0, 0, 0, 20);
+        ipadBox.setLayoutParams(ipadBoxParams);
+
+        TextView ipadTitle = new TextView(this);
+        ipadTitle.setText("📱 منظور الآيباد تكتيكي (iPad View)");
+        ipadTitle.setTextColor(Color.parseColor("#00E5FF"));
+        ipadTitle.setGravity(Gravity.CENTER);
+        ipadTitle.setPadding(0, 0, 0, 15);
+        ipadBox.addView(ipadTitle);
+
+        LinearLayout ipadButtons = new LinearLayout(this);
+        ipadButtons.setOrientation(LinearLayout.HORIZONTAL);
+
+        Button btnIpadOn = new Button(this);
+        btnIpadOn.setText("تفعيل المنظور 📺");
+        btnIpadOn.setTextColor(Color.WHITE);
+        GradientDrawable ipadOnBg = new GradientDrawable(); ipadOnBg.setColor(Color.parseColor("#0088CC")); ipadOnBg.setCornerRadius(8f);
+        btnIpadOn.setBackground(ipadOnBg);
+        btnIpadOn.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+
+        Button btnIpadOff = new Button(this);
+        btnIpadOff.setText("إرجاع طبيعي 📱");
+        btnIpadOff.setTextColor(Color.WHITE);
+        GradientDrawable ipadOffBg = new GradientDrawable(); ipadOffBg.setColor(Color.parseColor("#D50000")); ipadOffBg.setCornerRadius(8f);
+        btnIpadOff.setBackground(ipadOffBg);
+        LinearLayout.LayoutParams ipadOffLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+        ipadOffLp.setMargins(10, 0, 0, 0);
+        btnIpadOff.setLayoutParams(ipadOffLp);
+
+        // تفعيل المنظور الرياضي الآمن بدقة عالية
+        btnIpadOn.setOnClickListener(v -> {
+            try {
+                android.util.DisplayMetrics dm = new android.util.DisplayMetrics();
+                windowManager.getDefaultDisplay().getRealMetrics(dm);
+                int minSide = Math.min(dm.widthPixels, dm.heightPixels);
+                int targetMaxSide = (int)(minSide * 4.0f / 3.0f); // أبعاد الآيباد القياسية 4:3
+                Runtime.getRuntime().exec("wm size " + minSide + "x" + targetMaxSide);
+            } catch (Exception e) {
+                // مغلق بالكامل لمنع أي كراش في حال عدم توفر الصلاحية الخارجية
+            }
+        });
+
+        btnIpadOff.setOnClickListener(v -> {
+            try {
+                Runtime.getRuntime().exec("wm size reset");
+                Runtime.getRuntime().exec("wm density reset");
+            } catch (Exception e) {
+                // آمن ومحمي 100%
+            }
+        });
+
+        ipadButtons.addView(btnIpadOn); ipadButtons.addView(btnIpadOff);
+        ipadBox.addView(ipadButtons); menuLayout.addView(ipadBox);
+
+        // 3. شريط الألوان 
         LinearLayout colorLayout = new LinearLayout(this); colorLayout.setOrientation(LinearLayout.HORIZONTAL); colorLayout.setGravity(Gravity.CENTER);
         String[] colors = {"#39FF14", "#FF0000", "#00E5FF", "#FFD700", "#FFFFFF"}; 
         for (String c : colors) {
@@ -134,7 +191,7 @@ public class CrosshairService extends Service {
         }
         menuLayout.addView(colorLayout);
 
-        // التحكم بالحجم
+        // 4. التحكم بالحجم
         LinearLayout sizeBox = new LinearLayout(this); sizeBox.setOrientation(LinearLayout.VERTICAL); sizeBox.setBackgroundColor(Color.parseColor("#242424")); sizeBox.setPadding(15, 15, 15, 15);
         LinearLayout.LayoutParams boxParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT); boxParams.setMargins(0, 0, 0, 20); sizeBox.setLayoutParams(boxParams);
         TextView sizeTitle = new TextView(this); sizeTitle.setText("📏 تحكم بحجم الإيم"); sizeTitle.setTextColor(Color.parseColor("#FFD700")); sizeTitle.setGravity(Gravity.CENTER); sizeTitle.setPadding(0, 0, 0, 15); sizeBox.addView(sizeTitle);
@@ -145,10 +202,8 @@ public class CrosshairService extends Service {
         });
         sizeBox.addView(sizeBar); menuLayout.addView(sizeBox);
 
-        // زر إخفاء الإيم
-        Button btnToggleAim = new Button(this);
-        btnToggleAim.setText("إخفاء الإيم 👁️");
-        btnToggleAim.setTextColor(Color.WHITE);
+        // 5. زر إخفاء الإيم
+        Button btnToggleAim = new Button(this); btnToggleAim.setText("إخفاء الإيم 👁️"); btnToggleAim.setTextColor(Color.WHITE);
         GradientDrawable toggleBg = new GradientDrawable(); toggleBg.setColor(Color.parseColor("#FF6D00")); toggleBg.setCornerRadius(10f);
         btnToggleAim.setBackground(toggleBg); btnToggleAim.setPadding(10, 20, 10, 20); btnToggleAim.setLayoutParams(moveLp);
         btnToggleAim.setOnClickListener(v -> {
@@ -160,14 +215,14 @@ public class CrosshairService extends Service {
         });
         menuLayout.addView(btnToggleAim);
 
-        // زر الإغلاق
+        // 6. زر الإغلاق الشامل
         Button btnCloseAll = new Button(this); btnCloseAll.setText("إيقاف التطبيق بالكامل [ X ]"); btnCloseAll.setTextColor(Color.WHITE);
         GradientDrawable closeBg = new GradientDrawable(); closeBg.setColor(Color.parseColor("#D50000")); closeBg.setCornerRadius(10f);
         btnCloseAll.setBackground(closeBg); btnCloseAll.setPadding(10, 20, 10, 20); btnCloseAll.setLayoutParams(moveLp);
         btnCloseAll.setOnClickListener(v -> stopSelf());
         menuLayout.addView(btnCloseAll);
 
-        // قائمة الأشكال (تم دمجها مباشرة داخل القائمة الرئيسية)
+        // 7. قائمة الأشكال الـ 101 الفخمة العملاقة
         LinearLayout list = new LinearLayout(this); list.setOrientation(LinearLayout.VERTICAL);
         String[] scopes = new String[101]; scopes[0] = "1. دائرة القنص العملاقة (الأساسية) 🎯";
         for (int i = 1; i <= 100; i++) { scopes[i] = (i + 1) + ". سكوب تكتيكي عملاق V" + i + " 🔭"; }
@@ -178,17 +233,14 @@ public class CrosshairService extends Service {
             final int finalI = i; b.setOnClickListener(v -> { prefs.edit().putInt("shape", finalI).apply(); crosshairView.setShape(finalI); rootMenuScroll.setVisibility(View.GONE); }); list.addView(b);
         }
         menuLayout.addView(list);
-        
-        // إدخال المحتوى بالكامل في السكرول الرئيسي
         rootMenuScroll.addView(menuLayout);
 
         WindowManager.LayoutParams menuParams = new WindowManager.LayoutParams(600, 1000, layoutFlag, WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE, PixelFormat.TRANSLUCENT);
         menuParams.gravity = Gravity.TOP | Gravity.START; menuParams.x = 200; menuParams.y = 150;
         windowManager.addView(rootMenuScroll, menuParams);
 
-        // زر القائمة العائم
-        btnSettings = new TextView(this); 
-        btnSettings.setText("≡"); btnSettings.setTextColor(Color.WHITE); btnSettings.setTextSize(30); btnSettings.setGravity(Gravity.CENTER);
+        // زر القائمة العائم ≡
+        btnSettings = new TextView(this); btnSettings.setText("≡"); btnSettings.setTextColor(Color.WHITE); btnSettings.setTextSize(30); btnSettings.setGravity(Gravity.CENTER);
         GradientDrawable bg = new GradientDrawable(); bg.setShape(GradientDrawable.OVAL); bg.setColor(Color.parseColor("#90000000")); btnSettings.setBackground(bg);
         WindowManager.LayoutParams btnParams = new WindowManager.LayoutParams(120, 120, layoutFlag, WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE, PixelFormat.TRANSLUCENT);
         btnParams.gravity = Gravity.TOP | Gravity.START; btnParams.x = 50; btnParams.y = 200;
@@ -211,7 +263,7 @@ public class CrosshairService extends Service {
         });
         windowManager.addView(btnSettings, btnParams);
         
-        // نظام السحب والحفظ
+        // نظام السحب الذكي للأوفست
         crosshairView.setOnTouchListener(new View.OnTouchListener() {
             private int initialX, initialY; private float initialTouchX, initialTouchY;
             @Override
