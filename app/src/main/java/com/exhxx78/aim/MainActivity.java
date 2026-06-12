@@ -37,7 +37,7 @@ public class MainActivity extends Activity {
 
         // 1. عنوان التطبيق
         TextView title = new TextView(this);
-        title.setText("EXHXX AIM PRO");
+        title.setText("EXHXX78 AIM PRO");
         title.setTextColor(Color.parseColor("#00E5FF")); // سماوي نيون
         title.setTextSize(32);
         title.setTypeface(null, Typeface.BOLD);
