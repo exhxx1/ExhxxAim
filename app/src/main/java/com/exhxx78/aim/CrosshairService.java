@@ -30,7 +30,6 @@ public class CrosshairService extends Service {
     private SharedPreferences prefs;
     private boolean isAimVisible = true;
     private boolean isLockMode = true;
-    private boolean isVirtualWide = false;
 
     @Override public IBinder onBind(Intent intent) { return null; }
 
@@ -51,7 +50,6 @@ public class CrosshairService extends Service {
         String savedColor = prefs.getString("color", "#39FF14");
         float savedScale = prefs.getInt("aim_size_progress", 100) / 100f;
 
-        // الكلاس الآن كامل بدون أخطاء
         crosshairView = new DrawView(this, shapeType, savedColor, savedScale);
         crossParams = new WindowManager.LayoutParams(
                 WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT, layoutFlag,
@@ -61,6 +59,7 @@ public class CrosshairService extends Service {
         crossParams.gravity = Gravity.CENTER;
         windowManager.addView(crosshairView, crossParams);
 
+        // الحاوية الرئيسية القابلة للتمرير بالكامل
         rootMenuScroll = new ScrollView(this);
         rootMenuScroll.setBackgroundColor(Color.parseColor("#F2121212"));
         rootMenuScroll.setVisibility(View.GONE);
@@ -69,7 +68,7 @@ public class CrosshairService extends Service {
         menuLayout.setOrientation(LinearLayout.VERTICAL);
         menuLayout.setPadding(20, 20, 20, 20);
 
-        // 1. التحريك والتوسيط
+        // 1. قسم التحريك والتوسيط
         LinearLayout moveLayout = new LinearLayout(this);
         moveLayout.setOrientation(LinearLayout.HORIZONTAL);
         LinearLayout.LayoutParams moveLp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT); 
@@ -122,31 +121,7 @@ public class CrosshairService extends Service {
         moveLayout.addView(btnMove); moveLayout.addView(btnCenter);
         menuLayout.addView(moveLayout);
 
-        // 2. المنظور البرمجي الآمن بدون روت (Virtual Wide)
-        Button btnVirtualIpad = new Button(this);
-        btnVirtualIpad.setText("المنظور العريض (Virtual Wide) 📱");
-        btnVirtualIpad.setTextColor(Color.WHITE);
-        GradientDrawable virtualBg = new GradientDrawable(); virtualBg.setColor(Color.parseColor("#6200EE")); virtualBg.setCornerRadius(10f);
-        btnVirtualIpad.setBackground(virtualBg);
-        btnVirtualIpad.setPadding(10, 20, 10, 20);
-        btnVirtualIpad.setLayoutParams(moveLp);
-        
-        btnVirtualIpad.setOnClickListener(v -> {
-            isVirtualWide = !isVirtualWide;
-            if (isVirtualWide) {
-                crosshairView.setVirtualFOV(1.35f); 
-                btnVirtualIpad.setText("إرجاع المنظور الطبيعي 📱");
-                virtualBg.setColor(Color.parseColor("#D50000"));
-            } else {
-                crosshairView.setVirtualFOV(1.0f); 
-                btnVirtualIpad.setText("المنظور العريض (Virtual Wide) 📱");
-                virtualBg.setColor(Color.parseColor("#6200EE"));
-            }
-            btnVirtualIpad.setBackground(virtualBg);
-        });
-        menuLayout.addView(btnVirtualIpad);
-
-        // 3. شريط الألوان
+        // 2. شريط الألوان
         LinearLayout colorLayout = new LinearLayout(this); colorLayout.setOrientation(LinearLayout.HORIZONTAL); colorLayout.setGravity(Gravity.CENTER);
         String[] colors = {"#39FF14", "#FF0000", "#00E5FF", "#FFD700", "#FFFFFF"}; 
         for (String c : colors) {
@@ -156,7 +131,7 @@ public class CrosshairService extends Service {
         }
         menuLayout.addView(colorLayout);
 
-        // 4. التحكم بالحجم
+        // 3. التحكم بالحجم (Slider)
         LinearLayout sizeBox = new LinearLayout(this); sizeBox.setOrientation(LinearLayout.VERTICAL); sizeBox.setBackgroundColor(Color.parseColor("#242424")); sizeBox.setPadding(15, 15, 15, 15);
         LinearLayout.LayoutParams boxParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT); boxParams.setMargins(0, 0, 0, 20); sizeBox.setLayoutParams(boxParams);
         TextView sizeTitle = new TextView(this); sizeTitle.setText("📏 تحكم بحجم الإيم"); sizeTitle.setTextColor(Color.parseColor("#FFD700")); sizeTitle.setGravity(Gravity.CENTER); sizeTitle.setPadding(0, 0, 0, 15); sizeBox.addView(sizeTitle);
@@ -167,7 +142,7 @@ public class CrosshairService extends Service {
         });
         sizeBox.addView(sizeBar); menuLayout.addView(sizeBox);
 
-        // 5. زر الإخفاء
+        // 4. زر إخفاء/إظهار الإيم
         Button btnToggleAim = new Button(this); btnToggleAim.setText("إخفاء الإيم 👁️"); btnToggleAim.setTextColor(Color.WHITE);
         GradientDrawable toggleBg = new GradientDrawable(); toggleBg.setColor(Color.parseColor("#FF6D00")); toggleBg.setCornerRadius(10f);
         btnToggleAim.setBackground(toggleBg); btnToggleAim.setPadding(10, 20, 10, 20); btnToggleAim.setLayoutParams(moveLp);
@@ -180,14 +155,14 @@ public class CrosshairService extends Service {
         });
         menuLayout.addView(btnToggleAim);
 
-        // 6. زر الإغلاق
+        // 5. زر الإغلاق الشامل
         Button btnCloseAll = new Button(this); btnCloseAll.setText("إيقاف التطبيق بالكامل [ X ]"); btnCloseAll.setTextColor(Color.WHITE);
         GradientDrawable closeBg = new GradientDrawable(); closeBg.setColor(Color.parseColor("#D50000")); closeBg.setCornerRadius(10f);
         btnCloseAll.setBackground(closeBg); btnCloseAll.setPadding(10, 20, 10, 20); btnCloseAll.setLayoutParams(moveLp);
         btnCloseAll.setOnClickListener(v -> stopSelf());
         menuLayout.addView(btnCloseAll);
 
-        // 7. قائمة الأشكال
+        // 6. قائمة الأشكال الـ 101 الفخمة والكاملة
         LinearLayout list = new LinearLayout(this); list.setOrientation(LinearLayout.VERTICAL);
         String[] scopes = new String[101]; scopes[0] = "1. دائرة القنص العملاقة (الأساسية) 🎯";
         for (int i = 1; i <= 100; i++) { scopes[i] = (i + 1) + ". سكوب تكتيكي عملاق V" + i + " 🔭"; }
@@ -204,6 +179,7 @@ public class CrosshairService extends Service {
         menuParams.gravity = Gravity.TOP | Gravity.START; menuParams.x = 200; menuParams.y = 150;
         windowManager.addView(rootMenuScroll, menuParams);
 
+        // زر القائمة العائم ≡
         btnSettings = new TextView(this); btnSettings.setText("≡"); btnSettings.setTextColor(Color.WHITE); btnSettings.setTextSize(30); btnSettings.setGravity(Gravity.CENTER);
         GradientDrawable bg = new GradientDrawable(); bg.setShape(GradientDrawable.OVAL); bg.setColor(Color.parseColor("#90000000")); btnSettings.setBackground(bg);
         WindowManager.LayoutParams btnParams = new WindowManager.LayoutParams(120, 120, layoutFlag, WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE, PixelFormat.TRANSLUCENT);
@@ -227,6 +203,7 @@ public class CrosshairService extends Service {
         });
         windowManager.addView(btnSettings, btnParams);
         
+        // نظام السحب الدقيق للإيم وحفظه
         crosshairView.setOnTouchListener(new View.OnTouchListener() {
             private int initialX, initialY; private float initialTouchX, initialTouchY;
             @Override
@@ -261,107 +238,35 @@ public class CrosshairService extends Service {
         if (rootMenuScroll != null) windowManager.removeView(rootMenuScroll);
     }
 
-    // كلاس الرسم بالكامل وبدون اختصار
     private class DrawView extends View {
-        private Paint mainPaint, bgPaint; 
-        private int shape; 
-        private String colorHex; 
-        private float scaleFactor;
-        private float fov = 1.0f; // للتحكم بمنظور العرض البصري
-
+        private Paint mainPaint, bgPaint; private int shape; private String colorHex; private float scaleFactor;
         public DrawView(Context context, int shapeType, String colorHex, float scaleFactor) {
-            super(context); 
-            this.shape = shapeType; 
-            this.colorHex = colorHex; 
-            this.scaleFactor = scaleFactor;
-            mainPaint = new Paint(Paint.ANTI_ALIAS_FLAG); 
-            mainPaint.setColor(Color.parseColor(colorHex)); 
-            mainPaint.setStyle(Paint.Style.STROKE); 
-            mainPaint.setStrokeWidth(4f); 
-            bgPaint = new Paint(Paint.ANTI_ALIAS_FLAG); 
-            bgPaint.setColor(Color.BLACK); 
-            bgPaint.setStyle(Paint.Style.STROKE); 
-            bgPaint.setStrokeWidth(8f); 
+            super(context); this.shape = shapeType; this.colorHex = colorHex; this.scaleFactor = scaleFactor;
+            mainPaint = new Paint(Paint.ANTI_ALIAS_FLAG); mainPaint.setColor(Color.parseColor(colorHex)); mainPaint.setStyle(Paint.Style.STROKE); mainPaint.setStrokeWidth(4f); 
+            bgPaint = new Paint(Paint.ANTI_ALIAS_FLAG); bgPaint.setColor(Color.BLACK); bgPaint.setStyle(Paint.Style.STROKE); bgPaint.setStrokeWidth(8f); 
         }
-        
         public void setShape(int newShape) { this.shape = newShape; invalidate(); }
         public void setColor(String newColor) { this.colorHex = newColor; mainPaint.setColor(Color.parseColor(newColor)); invalidate(); }
         public void setScale(float newScale) { this.scaleFactor = newScale; invalidate(); }
-        public void setVirtualFOV(float f) { this.fov = f; invalidate(); }
-
-        private void drawLinePro(Canvas c, float startX, float startY, float stopX, float stopY) { 
-            c.drawLine(startX, startY, stopX, stopY, bgPaint); 
-            c.drawLine(startX, startY, stopX, stopY, mainPaint); 
-        }
-
-        private void drawCirclePro(Canvas c, float cx, float cy, float radius, boolean fill) { 
-            bgPaint.setStyle(fill ? Paint.Style.FILL : Paint.Style.STROKE); 
-            mainPaint.setStyle(fill ? Paint.Style.FILL : Paint.Style.STROKE); 
-            c.drawCircle(cx, cy, fill ? radius + 1.5f : radius, bgPaint); 
-            c.drawCircle(cx, cy, radius, mainPaint); 
-        }
-
+        private void drawLinePro(Canvas c, float startX, float startY, float stopX, float stopY) { c.drawLine(startX, startY, stopX, stopY, bgPaint); c.drawLine(startX, startY, stopX, stopY, mainPaint); }
+        private void drawCirclePro(Canvas c, float cx, float cy, float radius, boolean fill) { bgPaint.setStyle(fill ? Paint.Style.FILL : Paint.Style.STROKE); mainPaint.setStyle(fill ? Paint.Style.FILL : Paint.Style.STROKE); c.drawCircle(cx, cy, fill ? radius + 1.5f : radius, bgPaint); c.drawCircle(cx, cy, radius, mainPaint); }
         @Override
         protected void onDraw(Canvas canvas) {
             super.onDraw(canvas); 
-            int cx = getWidth() / 2; 
-            int cy = getHeight() / 2;
-            
-            canvas.save(); 
-            // توسيع الرؤية البصرية للإيم
-            canvas.scale(scaleFactor * fov, scaleFactor, cx, cy);
-            
+            int cx = getWidth() / 2; int cy = getHeight() / 2;
+            canvas.save(); canvas.scale(scaleFactor, scaleFactor, cx, cy);
             if (shape == 0) {
-                drawCirclePro(canvas, cx, cy, 100f, false); 
-                drawLinePro(canvas, cx - 120, cy, cx - 80, cy); 
-                drawLinePro(canvas, cx + 80, cy, cx + 120, cy); 
-                drawLinePro(canvas, cx, cy - 120, cx, cy - 80); 
-                drawLinePro(canvas, cx, cy + 80, cx, cy + 120); 
-                drawCirclePro(canvas, cx, cy, 8f, true); 
+                drawCirclePro(canvas, cx, cy, 100f, false); drawLinePro(canvas, cx - 120, cy, cx - 80, cy); drawLinePro(canvas, cx + 80, cy, cx + 120, cy); drawLinePro(canvas, cx, cy - 120, cx, cy - 80); drawLinePro(canvas, cx, cy + 80, cx, cy + 120); drawCirclePro(canvas, cx, cy, 8f, true); 
             } else {
-                float outRad = 85f + (shape % 8) * 5f; 
-                boolean hasInnerRing = (shape % 3 != 0); 
-                float inRad = outRad * 0.6f;
-                drawCirclePro(canvas, cx, cy, outRad, false); 
-                if (hasInnerRing) drawCirclePro(canvas, cx, cy, inRad, false);
-                float dotR = 2f + (shape % 6) * 1.5f; 
-                drawCirclePro(canvas, cx, cy, dotR, (shape % 4 != 0));
-                
+                float outRad = 85f + (shape % 8) * 5f; boolean hasInnerRing = (shape % 3 != 0); float inRad = outRad * 0.6f;
+                drawCirclePro(canvas, cx, cy, outRad, false); if (hasInnerRing) drawCirclePro(canvas, cx, cy, inRad, false);
+                float dotR = 2f + (shape % 6) * 1.5f; drawCirclePro(canvas, cx, cy, dotR, (shape % 4 != 0));
                 int lineStyle = shape % 4;
-                if (lineStyle == 0) { 
-                    drawLinePro(canvas, cx - outRad - 30, cy, cx - outRad, cy); 
-                    drawLinePro(canvas, cx + outRad, cy, cx + outRad + 30, cy); 
-                    drawLinePro(canvas, cx, cy - outRad - 30, cx, cy - outRad); 
-                    drawLinePro(canvas, cx, cy + outRad, cx, cy + outRad + 30); 
-                }
-                else if (lineStyle == 1) { 
-                    drawLinePro(canvas, cx - outRad - 10, cy, cx - 20, cy); 
-                    drawLinePro(canvas, cx + 20, cy, cx + outRad + 10, cy); 
-                    drawLinePro(canvas, cx, cy - outRad - 10, cx, cy - 20); 
-                    drawLinePro(canvas, cx, cy + 20, cx, cy + outRad + 10); 
-                }
-                else if (lineStyle == 2) { 
-                    drawLinePro(canvas, cx - outRad, cy, cx - 30, cy); 
-                    drawLinePro(canvas, cx + 30, cy, cx + outRad, cy); 
-                    drawLinePro(canvas, cx, cy + 30, cx, cy + outRad); 
-                }
-                else { 
-                    float oOut = (float)((outRad + 10f) * 0.707f); 
-                    float oIn = (float)((outRad - 10f) * 0.707f); 
-                    drawLinePro(canvas, cx - oOut, cy - oOut, cx - oIn, cy - oIn); 
-                    drawLinePro(canvas, cx + oIn, cy + oIn, cx + oOut, cy + oOut); 
-                    drawLinePro(canvas, cx - oOut, cy + oOut, cx - oIn, cy + oIn); 
-                    drawLinePro(canvas, cx + oIn, cy - oIn, cx + oOut, cy - oOut); 
-                }
-                if (shape % 2 == 0) { 
-                    float tickSpacing = outRad / 4f; 
-                    for(int i=1; i<=3; i++) { 
-                        drawCirclePro(canvas, cx + (i*tickSpacing), cy, 1.5f, true); 
-                        drawCirclePro(canvas, cx - (i*tickSpacing), cy, 1.5f, true); 
-                        drawCirclePro(canvas, cx, cy + (i*tickSpacing), 1.5f, true); 
-                        drawCirclePro(canvas, cx, cy - (i*tickSpacing), 1.5f, true); 
-                    } 
-                }
+                if (lineStyle == 0) { drawLinePro(canvas, cx - outRad - 30, cy, cx - outRad, cy); drawLinePro(canvas, cx + outRad, cy, cx + outRad + 30, cy); drawLinePro(canvas, cx, cy - outRad - 30, cx, cy - outRad); drawLinePro(canvas, cx, cy + outRad, cx, cy + outRad + 30); }
+                else if (lineStyle == 1) { drawLinePro(canvas, cx - outRad - 10, cy, cx - 20, cy); drawLinePro(canvas, cx + 20, cy, cx + outRad + 10, cy); drawLinePro(canvas, cx, cy - outRad - 10, cx, cy - 20); drawLinePro(canvas, cx, cy + 20, cx, cy + outRad + 10); }
+                else if (lineStyle == 2) { drawLinePro(canvas, cx - outRad, cy, cx - 30, cy); drawLinePro(canvas, cx + 30, cy, cx + outRad, cy); drawLinePro(canvas, cx, cy + 30, cx, cy + outRad); }
+                else { float oOut = (float)((outRad + 10f) * 0.707f); float oIn = (float)((outRad - 10f) * 0.707f); drawLinePro(canvas, cx - oOut, cy - oOut, cx - oIn, cy - oIn); drawLinePro(canvas, cx + oIn, cy + oIn, cx + oOut, cy + oOut); drawLinePro(canvas, cx - oOut, cy + oOut, cx - oIn, cy + oIn); drawLinePro(canvas, cx + oIn, cy - oIn, cx + oOut, cy - oOut); }
+                if (shape % 2 == 0) { float tickSpacing = outRad / 4f; for(int i=1; i<=3; i++) { drawCirclePro(canvas, cx + (i*tickSpacing), cy, 1.5f, true); drawCirclePro(canvas, cx - (i*tickSpacing), cy, 1.5f, true); drawCirclePro(canvas, cx, cy + (i*tickSpacing), 1.5f, true); drawCirclePro(canvas, cx, cy - (i*tickSpacing), 1.5f, true); } }
             }
             canvas.restore();
         }
