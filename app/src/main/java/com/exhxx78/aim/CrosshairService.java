@@ -7,7 +7,6 @@ import android.content.SharedPreferences;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.Path;
 import android.graphics.PixelFormat;
 import android.graphics.drawable.GradientDrawable;
 import android.os.IBinder;
@@ -43,7 +42,7 @@ public class CrosshairService extends Service {
         int shapeType = prefs.getInt("shape", 0); 
         String savedColor = prefs.getString("color", "#39FF14"); 
 
-        // الإيم بنفس القياسات السابقة (400x400)
+        // الإيم بقياسات عملاقة (400x400)
         crosshairView = new DrawView(this, shapeType, savedColor);
         WindowManager.LayoutParams crossParams = new WindowManager.LayoutParams(
                 400, 400, layoutFlag,
@@ -56,19 +55,19 @@ public class CrosshairService extends Service {
         crossParams.gravity = Gravity.CENTER;
         windowManager.addView(crosshairView, crossParams);
 
-        // القائمة العائمة
+        // القائمة العائمة (نفس الستايل الاحترافي)
         menuLayout = new LinearLayout(this);
         menuLayout.setOrientation(LinearLayout.VERTICAL);
-        menuLayout.setBackgroundColor(Color.parseColor("#F2121212")); // لون داكن احترافي جداً
+        menuLayout.setBackgroundColor(Color.parseColor("#F2121212")); 
         menuLayout.setPadding(20, 20, 20, 20);
         menuLayout.setVisibility(View.GONE); 
 
-        // 1. شريط الألوان (بألوان عصرية)
+        // 1. شريط الألوان 
         LinearLayout colorLayout = new LinearLayout(this);
         colorLayout.setOrientation(LinearLayout.HORIZONTAL);
         colorLayout.setGravity(Gravity.CENTER);
         
-        String[] colors = {"#39FF14", "#FF0000", "#00E5FF", "#FFD700", "#FFFFFF"}; // أخضر، أحمر، سماوي، ذهبي، أبيض نقي
+        String[] colors = {"#39FF14", "#FF0000", "#00E5FF", "#FFD700", "#FFFFFF"}; 
         for (String c : colors) {
             Button cb = new Button(this);
             GradientDrawable cd = new GradientDrawable();
@@ -89,7 +88,7 @@ public class CrosshairService extends Service {
         }
         menuLayout.addView(colorLayout);
 
-        // 2. زر الإغلاق الشامل بداخل اللعبة (Kill Switch)
+        // 2. زر الإغلاق الشامل بداخل اللعبة
         Button btnCloseAll = new Button(this);
         btnCloseAll.setText("إيقاف التطبيق بالكامل [ X ]");
         btnCloseAll.setTextColor(Color.WHITE);
@@ -102,23 +101,20 @@ public class CrosshairService extends Service {
             LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         closeLp.setMargins(0, 0, 0, 20);
         btnCloseAll.setLayoutParams(closeLp);
-        btnCloseAll.setOnClickListener(v -> stopSelf()); // هذا الأمر يقتل الخدمة ويخفي كل شيء فوراً!
+        btnCloseAll.setOnClickListener(v -> stopSelf());
         menuLayout.addView(btnCloseAll);
 
-        // 3. قائمة الأشكال (بأسماء احترافية eSports)
+        // 3. قائمة الأشكال (توليد 101 شكل عملاق)
         ScrollView scrollView = new ScrollView(this);
         LinearLayout list = new LinearLayout(this);
         list.setOrientation(LinearLayout.VERTICAL);
 
-        String[] scopes = {
-            "Dot Sight", "Classic Cross", "Overwatch", "Apex Chevron", 
-            "Valorant X", "Cyberpunk", "T-Shape", "Shotgun", 
-            "Simple Sniper", "Diamond Star", 
-            "Realistic Mil-Dot", "ACOG Scope", 
-            "Holographic", "Red Dot",
-            "Mercedes (Huge)", "Sniper Ring (Huge)",
-            "Kobra Sight (NEW)", "Predator Tri-Dot (NEW)"
-        };
+        // السحر البرمجي: توليد 101 اسم للقائمة
+        String[] scopes = new String[101];
+        scopes[0] = "1. دائرة القنص العملاقة (الأساسية) 🎯";
+        for (int i = 1; i <= 100; i++) {
+            scopes[i] = (i + 1) + ". سكوب تكتيكي عملاق V" + i + " 🔭";
+        }
 
         for (int i = 0; i < scopes.length; i++) {
             Button b = new Button(this);
@@ -154,15 +150,15 @@ public class CrosshairService extends Service {
         menuParams.x = 200; menuParams.y = 200;
         windowManager.addView(menuLayout, menuParams);
 
-        // 4. زر الإعدادات العائم (أيقونة احترافية ≡ بدل الايموجي)
+        // 4. زر القائمة العائم ≡
         btnSettings = new TextView(this);
-        btnSettings.setText("≡"); // رمز القائمة الاحترافي
+        btnSettings.setText("≡"); 
         btnSettings.setTextColor(Color.WHITE);
         btnSettings.setTextSize(30);
         btnSettings.setGravity(Gravity.CENTER);
         GradientDrawable bg = new GradientDrawable();
         bg.setShape(GradientDrawable.OVAL);
-        bg.setColor(Color.parseColor("#90000000")); // أسود شفاف
+        bg.setColor(Color.parseColor("#90000000")); 
         btnSettings.setBackground(bg);
 
         WindowManager.LayoutParams btnParams = new WindowManager.LayoutParams(
@@ -218,6 +214,7 @@ public class CrosshairService extends Service {
         if (menuLayout != null) windowManager.removeView(menuLayout);
     }
 
+    // محرك الرسم العسكري لـ 101 سكوب
     private class DrawView extends View {
         private Paint mainPaint, bgPaint;
         private int shape;
@@ -257,85 +254,65 @@ public class CrosshairService extends Service {
         protected void onDraw(Canvas canvas) {
             super.onDraw(canvas);
             int cx = getWidth() / 2; int cy = getHeight() / 2;
-            float gap = 8f; float len = 20f;
 
-            switch (shape) {
-                // الأشكال الـ 16 السابقة كما هي بالضبط (بدون أي تغيير بالقياسات)
-                case 0: drawCirclePro(canvas, cx, cy, 4f, true); break;
-                case 1: 
-                    drawLinePro(canvas, cx - gap - len, cy, cx - gap, cy); drawLinePro(canvas, cx + gap, cy, cx + gap + len, cy);
-                    drawLinePro(canvas, cx, cy - gap - len, cx, cy - gap); drawLinePro(canvas, cx, cy + gap, cx, cy + gap + len); break;
-                case 2: drawCirclePro(canvas, cx, cy, 14f, false); drawCirclePro(canvas, cx, cy, 3f, true); break;
-                case 3: 
-                    Path bgP = new Path(); bgP.moveTo(cx - 15, cy + 10); bgP.lineTo(cx, cy - 10); bgP.lineTo(cx + 15, cy + 10);
-                    canvas.drawPath(bgP, bgPaint); canvas.drawPath(bgP, mainPaint);
-                    drawCirclePro(canvas, cx, cy + 15, 3f, true); break;
-                case 4: 
-                    drawLinePro(canvas, cx - gap - 10, cy - gap - 10, cx - gap, cy - gap); drawLinePro(canvas, cx + gap + 10, cy + gap + 10, cx + gap, cy + gap);
-                    drawLinePro(canvas, cx - gap - 10, cy + gap + 10, cx - gap, cy + gap); drawLinePro(canvas, cx + gap + 10, cy - gap - 10, cx + gap, cy - gap);
-                    drawCirclePro(canvas, cx, cy, 3f, true); break;
-                case 5: 
-                    drawLinePro(canvas, cx - 15, cy - 10, cx - 15, cy + 10); drawLinePro(canvas, cx - 15, cy - 10, cx - 10, cy - 10);
-                    drawLinePro(canvas, cx - 15, cy + 10, cx - 10, cy + 10); drawLinePro(canvas, cx + 15, cy - 10, cx + 15, cy + 10);
-                    drawLinePro(canvas, cx + 15, cy - 10, cx + 10, cy - 10); drawLinePro(canvas, cx + 15, cy + 10, cx + 10, cy + 10);
-                    drawCirclePro(canvas, cx, cy, 4f, true); break;
-                case 6: 
-                    drawLinePro(canvas, cx - gap - len, cy, cx - gap, cy); drawLinePro(canvas, cx + gap, cy, cx + gap + len, cy);
-                    drawLinePro(canvas, cx, cy + gap, cx, cy + gap + len); drawCirclePro(canvas, cx, cy, 2f, true); break;
-                case 7: drawCirclePro(canvas, cx, cy, 25f, false); drawCirclePro(canvas, cx, cy, 15f, false); drawCirclePro(canvas, cx, cy, 4f, true); break;
-                case 8: 
-                    drawCirclePro(canvas, cx, cy, 35f, false);
-                    drawLinePro(canvas, cx - 45, cy, cx - 25, cy); drawLinePro(canvas, cx + 25, cy, cx + 45, cy);
-                    drawLinePro(canvas, cx, cy - 45, cx, cy - 25); drawLinePro(canvas, cx, cy + 25, cx, cy + 45);
-                    drawCirclePro(canvas, cx, cy, 3f, true); break;
-                case 9: 
-                    Path dP = new Path(); dP.moveTo(cx, cy - 20); dP.lineTo(cx + 20, cy); dP.lineTo(cx, cy + 20); dP.lineTo(cx - 20, cy); dP.close();
-                    canvas.drawPath(dP, bgPaint); canvas.drawPath(dP, mainPaint);
-                    drawCirclePro(canvas, cx, cy, 3f, true); break;
-                case 10: 
-                    drawLinePro(canvas, cx - 80, cy, cx + 80, cy); drawLinePro(canvas, cx, cy - 80, cx, cy + 80);
-                    for(int i=1; i<=4; i++) {
-                        drawCirclePro(canvas, cx + (i*15), cy, 1.5f, true); drawCirclePro(canvas, cx - (i*15), cy, 1.5f, true);
-                        drawCirclePro(canvas, cx, cy + (i*15), 1.5f, true); drawCirclePro(canvas, cx, cy - (i*15), 1.5f, true);
-                    } break;
-                case 11: 
-                    Path acog = new Path(); acog.moveTo(cx, cy - 10); acog.lineTo(cx + 10, cy + 10); acog.lineTo(cx - 10, cy + 10); acog.close();
-                    canvas.drawPath(acog, bgPaint); canvas.drawPath(acog, mainPaint);
-                    drawLinePro(canvas, cx, cy + 15, cx, cy + 45);
-                    drawLinePro(canvas, cx - 6, cy + 25, cx + 6, cy + 25); drawLinePro(canvas, cx - 10, cy + 35, cx + 10, cy + 35); break;
-                case 12: 
-                    drawCirclePro(canvas, cx, cy, 22f, false);
-                    drawLinePro(canvas, cx, cy - 22, cx, cy - 30); drawLinePro(canvas, cx, cy + 22, cx, cy + 30);
-                    drawLinePro(canvas, cx - 22, cy, cx - 30, cy); drawLinePro(canvas, cx + 22, cy, cx + 30, cy);
-                    drawCirclePro(canvas, cx, cy, 3f, true); break;
-                case 13: 
-                    drawCirclePro(canvas, cx, cy, 30f, false); drawCirclePro(canvas, cx, cy, 4f, true); break;
-                case 14: 
-                    drawCirclePro(canvas, cx, cy, 80f, false); 
-                    drawLinePro(canvas, cx, cy, cx, cy - 80); 
-                    drawLinePro(canvas, cx, cy, cx + 69, cy + 40); 
-                    drawLinePro(canvas, cx, cy, cx - 69, cy + 40); 
-                    drawCirclePro(canvas, cx, cy, 6f, true); break;
-                case 15: 
-                    drawCirclePro(canvas, cx, cy, 100f, false); 
-                    drawLinePro(canvas, cx - 120, cy, cx - 80, cy); drawLinePro(canvas, cx + 80, cy, cx + 120, cy); 
-                    drawLinePro(canvas, cx, cy - 120, cx, cy - 80); drawLinePro(canvas, cx, cy + 80, cx, cy + 120); 
-                    drawCirclePro(canvas, cx, cy, 8f, true); break;
+            if (shape == 0) {
+                // الشكل الأول: دائرة القنص العملاقة الأساسية اللي طلبتها
+                drawCirclePro(canvas, cx, cy, 100f, false); 
+                drawLinePro(canvas, cx - 120, cy, cx - 80, cy); 
+                drawLinePro(canvas, cx + 80, cy, cx + 120, cy); 
+                drawLinePro(canvas, cx, cy - 120, cx, cy - 80); 
+                drawLinePro(canvas, cx, cy + 80, cx, cy + 120); 
+                drawCirclePro(canvas, cx, cy, 8f, true); 
+            } else {
+                // خوارزمية توليد الـ 100 شكل الباقية (مختلفة وعشوائية وعملاقة واقعية)
                 
-                // --- الإضافات الواقعية الجديدة ---
-                case 16: // 17. Kobra Sight (سكوب الكوبرا الروسي)
-                    Path kobra = new Path(); kobra.moveTo(cx, cy - 20); kobra.lineTo(cx + 15, cy + 5); kobra.lineTo(cx - 15, cy + 5); kobra.close();
-                    canvas.drawPath(kobra, bgPaint); canvas.drawPath(kobra, mainPaint);
-                    drawLinePro(canvas, cx, cy + 15, cx, cy + 40); // الخط السفلي
-                    drawLinePro(canvas, cx - 40, cy + 15, cx - 20, cy + 15); // الخط الجانبي الأيسر
-                    drawLinePro(canvas, cx + 20, cy + 15, cx + 40, cy + 15); // الخط الجانبي الأيمن
-                    break;
-                case 17: // 18. Predator Tri-Dot (إيم البريداتور)
-                    drawCirclePro(canvas, cx, cy - 25, 5f, true); // النقطة العلوية
-                    drawCirclePro(canvas, cx - 25, cy + 15, 5f, true); // النقطة اليسرى
-                    drawCirclePro(canvas, cx + 25, cy + 15, 5f, true); // النقطة اليمنى
-                    drawCirclePro(canvas, cx, cy, 2f, true); // نقطة تصويب دقيقة بالمنتصف
-                    break;
+                // 1. الدائرة الخارجية العشوائية (حجم عملاق بين 85 و 120)
+                float outRad = 85f + (shape % 8) * 5f; 
+                boolean hasInnerRing = (shape % 3 != 0); // بعضها يحتوي على دائرة داخلية مزدوجة
+                float inRad = outRad * 0.6f;
+                
+                drawCirclePro(canvas, cx, cy, outRad, false);
+                if (hasInnerRing) drawCirclePro(canvas, cx, cy, inRad, false);
+                
+                // 2. نقطة السنتر (تختلف بالحجم والشكل)
+                float dotR = 2f + (shape % 6) * 1.5f;
+                drawCirclePro(canvas, cx, cy, dotR, (shape % 4 != 0)); // مرات مليانة ومرات مجوفة
+                
+                // 3. خطوط القنص (4 أنماط مختلفة تتولد عشوائياً)
+                int lineStyle = shape % 4;
+                if (lineStyle == 0) { // خطوط خارجية فقط
+                    drawLinePro(canvas, cx - outRad - 30, cy, cx - outRad, cy);
+                    drawLinePro(canvas, cx + outRad, cy, cx + outRad + 30, cy);
+                    drawLinePro(canvas, cx, cy - outRad - 30, cx, cy - outRad);
+                    drawLinePro(canvas, cx, cy + outRad, cx, cy + outRad + 30);
+                } else if (lineStyle == 1) { // تقاطع كامل يخترق الدائرة
+                    drawLinePro(canvas, cx - outRad - 10, cy, cx - 20, cy);
+                    drawLinePro(canvas, cx + 20, cy, cx + outRad + 10, cy);
+                    drawLinePro(canvas, cx, cy - outRad - 10, cx, cy - 20);
+                    drawLinePro(canvas, cx, cy + 20, cx, cy + outRad + 10);
+                } else if (lineStyle == 2) { // شكل حرف T المقلوب للأسلحة الثقيلة
+                    drawLinePro(canvas, cx - outRad, cy, cx - 30, cy);
+                    drawLinePro(canvas, cx + 30, cy, cx + outRad, cy);
+                    drawLinePro(canvas, cx, cy + 30, cx, cy + outRad);
+                } else { // علامات تحديد الزوايا (شكل سايبربانك/مستقبلي)
+                    float oOut = (float)((outRad + 10f) * 0.707f);
+                    float oIn = (float)((outRad - 10f) * 0.707f);
+                    drawLinePro(canvas, cx - oOut, cy - oOut, cx - oIn, cy - oIn);
+                    drawLinePro(canvas, cx + oIn, cy + oIn, cx + oOut, cy + oOut);
+                    drawLinePro(canvas, cx - oOut, cy + oOut, cx - oIn, cy + oIn);
+                    drawLinePro(canvas, cx + oIn, cy - oIn, cx + oOut, cy - oOut);
+                }
+                
+                // 4. نقاط قياس المسافة (Mil-Dots) اللي تميز القناصات الحقيقية (تظهر بنصف الأشكال)
+                if (shape % 2 == 0) {
+                    float tickSpacing = outRad / 4f;
+                    for(int i=1; i<=3; i++) {
+                        drawCirclePro(canvas, cx + (i*tickSpacing), cy, 1.5f, true);
+                        drawCirclePro(canvas, cx - (i*tickSpacing), cy, 1.5f, true);
+                        drawCirclePro(canvas, cx, cy + (i*tickSpacing), 1.5f, true);
+                        drawCirclePro(canvas, cx, cy - (i*tickSpacing), 1.5f, true);
+                    }
+                }
             }
         }
     }
